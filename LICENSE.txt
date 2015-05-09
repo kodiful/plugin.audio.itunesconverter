@@ -1,18 +1,7 @@
 
- You may use, distribute and copy the iPhoto plugin for XBMC under 
- the terms outlines below:
-
- 1. All forms of distribution of this program or modified versions of this
-    program must contain this LICENSE.
-
- 2. All the terms of the of GNU General Public License version 2, which is
-    displayed below are followed.
- 
- All icons and graphics are copyright of their respective owners. I have
- tried to ensure that all the graphics used in this program are conformant
- to their licenses. If you are the owner of any of the graphics distributed
- in this program and feel that your license has been violated please contact
- me at jingai 'at' floatingpenguins 'dot' com.
+You may use, distribute and copy iTunes Playlist Converter plugin
+under the terms of GNU General Public License version 2, which is
+displayed below.
 
 -------------------------------------------------------------------------
 
