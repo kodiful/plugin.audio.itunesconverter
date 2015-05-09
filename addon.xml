@@ -2,7 +2,7 @@
 <addon id="plugin.audio.itunesconverter"
        name="iTunes Playlist Converter"
        version="1.0"
-       provider-name="uchiyama@beige.ocn.ne.jp">
+       provider-name="kodiful">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
   </requires>
@@ -15,7 +15,7 @@
     <summary lang="ja">iTunesプレイリストコンバータ</summary>
     <description lang="en">Convert iTunes playlists to m3u/html</description>
     <description lang="ja">iTunesプレイリストをm3u/htmlに変換する</description>
-    <disclaimer lang="en">Works under Windows &amp; MacOSX</disclaimer>
+    <disclaimer lang="en">Works on Windows &amp; MacOSX</disclaimer>
     <disclaimer lang="ja">WindowsとMacOSXで動作</disclaimer>
   </extension>
 </addon>
