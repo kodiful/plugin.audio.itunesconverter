@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <!--
+      strings 30000 thru 30999 reserved for plugins and plugin settings
+      strings 31000 thru 31999 reserved for skins
+      strings 32000 thru 32999 reserved for scripts
+      strings 33000 thru 33999 reserved for common strings used in add-ons
+  -->
+  <string id="30000">一般設定</string>
+  <string id="30001">iTunes Music Library.xmlへのパス</string>
+  <string id="30002">ファイルパスを変換する</string>
+  <string id="30003">変換前のパス</string>
+  <string id="30004">変換後のパス</string>
+  <string id="30100">HTML変換</string>
+  <string id="30101">プレイリストをHTMLに変換する</string>
+  <string id="30102">HTMLプレイリストのディレクトリへのパス</string>
+  <string id="30901">iTunes Music Libraryへのパスを設定してください</string>
+  <string id="30902">HTMLプレイリストのディレクトリへのパスを設定してください</string>
+</strings>

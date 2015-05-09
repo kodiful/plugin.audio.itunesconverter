@@ -1,0 +1,12 @@
+    <li>
+      <div class="name"><a href="#{trackId}" onclick="description(this);return false;">{name}</a></div>
+      <div class="hidden">
+        <div class="sub"><span>artist:&nbsp;</span>{artist}</div>
+        <div class="sub"><span>album:&nbsp;</span>{album}</div>
+        <div class="sub"><span>recorded:&nbsp;</span>{year}</div>
+        <div class="sub"><span>duration:&nbsp;</span>{duration}</div>
+        <div class="sub"><span>track:&nbsp;</span>{track}</div>
+        <div class="sub"><span>disc:&nbsp;</span>{disc}</div>
+        <div class="sub"><span>added:&nbsp;</span>{dateAdded}</div>
+      </div>
+    </li>

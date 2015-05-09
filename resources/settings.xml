@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+  <!--
+      strings 30000 thru 30999 reserved for plugins and plugin settings
+      strings 31000 thru 31999 reserved for skins
+      strings 32000 thru 32999 reserved for scripts
+      strings 33000 thru 33999 reserved for common strings used in add-ons
+  -->
+  <category label="30000">
+    <setting id="library_path" type="file" label="30001" default="" mask=".xml"/>
+    <setting id="translate_path" type="bool" label="30002"/>
+    <setting id="oldmusic_path" type="text" subsetting="true" label="30003" default="" enable="eq(-1,true)"/>
+    <setting id="music_path" type="text" subsetting="true" label="30004" default="" enable="eq(-2,true)"/>
+  </category>
+  <category label="30100">
+    <setting id="create_html" type="bool" label="30101"/>
+    <setting id="html_path" type="folder" label="30102" default="" enable="eq(-1,true)"/>
+  </category>
+</settings>
+

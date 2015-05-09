@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+<style type="text/css">
+*         {{font-family: "メイリオ", Meiryo, "ＭＳ Ｐゴシック", "MS PGothic", "ヒラギノ角ゴ Pro W3", "Hiragino Kaku Gothic Pro", Osaka, sans-serif; font-size: 12pt;}}
+ul        {{list-style-type: none; padding-left: 0px;}}
+h1        {{display: none;}}
+a         {{color: blue;}}
+.hidden   {{display: none;}}
+.sub      {{padding-left: 20px; font-size: 10pt;}}
+.sub span {{color: green; font-style: italic; font-size: 10pt;}}
+</style>
+<script type="text/javascript">
+function description(a) {{
+  var b = a.parentNode.nextSibling;
+  while(b.nodeName != 'DIV') b = b.nextSibling;
+  b.className = b.className ? "" : "hidden";
+}}
+</script>
+<title>{title}</title>
+</head>
+<body>
+  <ul>
