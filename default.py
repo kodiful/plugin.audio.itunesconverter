@@ -72,7 +72,7 @@ def setup(plist, path, fileType, isFolder=False):
     name = unicodedata.normalize('NFC', name)
 
     # skip some top level playlists 
-    if not isFolder and pid is None and re.search("^(?:Podcast|テレビ番組|ミュージック|ムービー|ライブラリ|購入したもの)$",name) is not None:
+    if not isFolder and pid is None and re.search("^(?:####!####|App|Podcast|テレビ番組|ミュージック|ムービー|ホームビデオ|ライブラリ|購入したもの)$",name) is not None:
         return None
 
     item = {"sid":sid, "pid":pid, "name":name}
@@ -114,25 +114,29 @@ def converttom3u(p, playlist, oldmusicpath, musicpath, m3upath):
     tracks = p['Playlist Items']
     # Iterate through all tracks in the current playlist
     for t in tracks:
-        track_id = t['Track ID']
-        music = playlist['Tracks'][str(track_id)]
-        # title
-        title = unicodedata.normalize('NFC', music['Name'].encode('utf-8','ignore').decode('utf-8')) # .encode().decode() makes this line work
-        # total time
-        totalTime = music['Total Time']
-        # location
-        location = music['Location']
-        # write file locations except m4p
-        if re.search('\.m4p$',location) is None:
-            # title & duration
-            outf.write("#EXTINF:%d,%s\n" % (int(totalTime/1000),title))
-            # iTunes put quote to transform space to %20 and so, we have to convert them
-            location = urllib.unquote(location).decode('utf-8')
-            location = unicodedata.normalize('NFC', location)
-            # Replace old location to the new location
-            if oldmusicpath!="": location = location.replace(oldmusicpath, musicpath)
-            # write the file location in the playlist file                         
-            outf.write("%s\n" % (location))
+        try:
+            track_id = t['Track ID']
+            music = playlist['Tracks'][str(track_id)]
+            # title
+            title = unicodedata.normalize('NFC', music['Name'].encode('utf-8','ignore').decode('utf-8')) # .encode().decode() makes this line work
+            # total time
+            totalTime = music['Total Time']
+            # location
+            location = music['Location']
+            # write file locations except m4p
+            if re.search('\.m4p$',location) is None:
+                # title & duration
+                outf.write("#EXTINF:%d,%s\n" % (int(totalTime/1000),title))
+                # iTunes put quote to transform space to %20 and so, we have to convert them
+                location = urllib.unquote(location).decode('utf-8')
+                location = unicodedata.normalize('NFC', location)
+                # Replace old location to the new location
+                if oldmusicpath!="": location = location.replace(oldmusicpath, musicpath)
+                # write the file location in the playlist file                         
+                outf.write("%s\n" % (location))
+        except:
+            print 'parse failed in Track ID %s' % t['Track ID']
+            pass
     outf.close()
 
 
