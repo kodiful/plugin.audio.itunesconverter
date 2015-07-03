@@ -1,3 +1,6 @@
+2015-07-03 v1.0.2
+iTunes 12.2 の iTunes Music Library.xml へ対応（プレイリストからMaster, Distinguished Kindを除外）
+
 2015-07-02 v1.0.1
 iTunes 12.2 の iTunes Music Library.xml へ対応
 

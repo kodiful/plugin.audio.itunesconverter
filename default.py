@@ -72,8 +72,17 @@ def setup(plist, path, fileType, isFolder=False):
     name = unicodedata.normalize('NFC', name)
 
     # skip some top level playlists 
-    if not isFolder and pid is None and re.search("^(?:####!####|App|Podcast|テレビ番組|ミュージック|ムービー|ホームビデオ|ライブラリ|購入したもの)$",name) is not None:
+    #if not isFolder and pid is None and re.search("^(?:####!####|App|Podcast|テレビ番組|ミュージック|ムービー|ホームビデオ|ライブラリ|購入したもの)$",name) is not None:
+    try:
+        master = plist['Master'];
         return None
+    except:
+        pass
+    try:
+        special = plist['Distinguished Kind'];
+        return None
+    except:
+        pass
 
     item = {"sid":sid, "pid":pid, "name":name}
     tree = foldertree[fileType]
