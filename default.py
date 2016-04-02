@@ -6,6 +6,7 @@ import xbmc
 import xbmcaddon
 import xbmcplugin
 import xbmcgui
+import xbmcvfs
 
 import sys, urllib
 import os, re
@@ -20,6 +21,10 @@ addon = xbmcaddon.Addon('plugin.audio.itunesconverter')
 
 template = {}
 foldertree = {"m3u":[], "html":[]}
+
+# ファイル/ディレクトリパス
+profilepath = xbmc.translatePath(addon.getAddonInfo('profile').decode('utf-8'))
+librarypath = os.path.join(profilepath, 'iTunes Music Library.xml')
 
 unmarshallers = {
     # collections
@@ -71,7 +76,7 @@ def setup(plist, path, fileType, isFolder=False):
     name = plist['Name'].replace('/', ' - ')
     name = unicodedata.normalize('NFC', name)
 
-    # skip some top level playlists 
+    # skip some top level playlists
     #if not isFolder and pid is None and re.search("^(?:####!####|App|Podcast|テレビ番組|ミュージック|ムービー|ホームビデオ|ライブラリ|購入したもの)$",name) is not None:
     try:
         master = plist['Master'];
@@ -119,7 +124,7 @@ def converttom3u(p, playlist, oldmusicpath, musicpath, m3upath):
     outf = codecs.open(filename,'w','utf-8')
     # write the m3u header
     outf.write("#EXTM3U\n")
-    # dictionnary with all tracks {'Track ID : 4042},{'Track ID : 4046}, etc                        
+    # dictionnary with all tracks {'Track ID : 4042},{'Track ID : 4046}, etc
     tracks = p['Playlist Items']
     # Iterate through all tracks in the current playlist
     for t in tracks:
@@ -141,7 +146,7 @@ def converttom3u(p, playlist, oldmusicpath, musicpath, m3upath):
                 location = unicodedata.normalize('NFC', location)
                 # Replace old location to the new location
                 if oldmusicpath!="": location = location.replace(oldmusicpath, musicpath)
-                # write the file location in the playlist file                         
+                # write the file location in the playlist file
                 outf.write("%s\n" % (location))
         except:
             print 'parse failed in Track ID %s' % t['Track ID']
@@ -157,7 +162,7 @@ def converttohtml(p, playlist, htmlpath):
     outf = codecs.open(filename,'w','utf-8')
     # write html header
     outf.write(template['header'].format(title=p['Name']))
-    # dictionary with all tracks {'Track ID : 4042},{'Track ID : 4046}, etc                        
+    # dictionary with all tracks {'Track ID : 4042},{'Track ID : 4046}, etc
     tracks = p['Playlist Items']
     # iterate through all tracks in the current playlist
     for t in tracks:
@@ -251,15 +256,26 @@ def main():
     # for Windows(Bootcamp)
     # oldmusicpath = "file://localhost/"
     # musicpath    = "E:/"
-    
+
     # for MacOS
     # oldmusicpath = "file:///"
     # musicpath    = "/"
 
-    # itunes music library    
-    library = addon.getSetting('library_path').decode('utf-8')
-    if not os.path.isfile(library):
+    # itunes music library
+    librarysrc = addon.getSetting('library_path').decode('utf-8')
+
+    # check file
+    if not xbmcvfs.exists(librarysrc):
         builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30901)
+        xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
+        addon.openSettings()
+        sys.exit()
+
+    # copy file
+    try:
+        xbmcvfs.copy(librarysrc, librarypath)
+    except:
+        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30903)
         xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
         addon.openSettings()
         sys.exit()
@@ -292,7 +308,7 @@ def main():
             for name in files:
                 os.remove(os.path.join(root, name))
             for name in dirs:
-                os.rmdir(os.path.join(root, name))        
+                os.rmdir(os.path.join(root, name))
 
     # htmlpath
     if htmlpath != "" and os.path.isdir(htmlpath):
@@ -302,9 +318,9 @@ def main():
                 os.remove(os.path.join(root, name))
             for name in dirs:
                 os.rmdir(os.path.join(root, name))
-                    
+
     # load playlist
-    playlist = loadplist(library)
+    playlist = loadplist(librarypath)
 
     # load templates
     for section in ["header","footer","description","index"]:

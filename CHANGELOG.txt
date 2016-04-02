@@ -1,3 +1,6 @@
+2016-04-02 v1.0.3
+SMB等で共有されている iTunes Music Library.xml へ対応
+
 2015-07-03 v1.0.2
 iTunes 12.2 の iTunes Music Library.xml へ対応（プレイリストからMaster, Distinguished Kindを除外）
 
