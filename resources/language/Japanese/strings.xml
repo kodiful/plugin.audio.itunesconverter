@@ -11,10 +11,12 @@
   <string id="30002">ファイルパスを変換する</string>
   <string id="30003">変換前のパス</string>
   <string id="30004">変換後のパス</string>
-  <string id="30100">HTML変換</string>
+  <string id="30100">HTML変換設定</string>
   <string id="30101">プレイリストをHTMLに変換する</string>
   <string id="30102">HTMLプレイリストのディレクトリへのパス</string>
-  <string id="30901">iTunes Music Libraryへのパスを設定してください</string>
-  <string id="30902">HTMLプレイリストのディレクトリへのパスを設定してください</string>
-  <string id="30903">iTunes Music Libraryが取得できません</string>
+  <string id="30103">iTunes Music Libraryへのパスを設定してください</string>
+  <string id="30104">HTMLプレイリストのディレクトリへのパスを設定してください</string>
+  <string id="30105">iTunes Music Libraryが取得できません</string>
+  <string id="30200">変換実行</string>
+  <string id="30201">実行</string>
 </strings>

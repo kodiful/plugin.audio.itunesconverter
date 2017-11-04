@@ -14,6 +14,7 @@ import exceptions
 import base64, datetime
 import codecs
 import unicodedata
+import urlparse
 
 from xml.etree.ElementTree import *
 
@@ -247,7 +248,7 @@ def converttoindex(root, dirname):
     outf.close()
 
 
-def main():
+def convert():
 
     # for Windows
     # oldmusicpath = "file://localhost/"
@@ -266,7 +267,7 @@ def main():
 
     # check file
     if not xbmcvfs.exists(librarysrc):
-        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30901)
+        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30103)
         xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
         addon.openSettings()
         sys.exit()
@@ -275,7 +276,7 @@ def main():
     try:
         xbmcvfs.copy(librarysrc, librarypath)
     except:
-        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30903)
+        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30105)
         xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
         addon.openSettings()
         sys.exit()
@@ -286,7 +287,7 @@ def main():
     else:
         htmlpath = addon.getSetting('html_path').decode('utf-8')
         if htmlpath == "" or not os.path.isdir(htmlpath):
-            builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30902)
+            builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30104)
             xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
             addon.openSettings()
             sys.exit()
@@ -352,9 +353,15 @@ def main():
                 converttoindex(root, name)
             converttoindex(root, "")
 
-    # notify & exit
-    xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Playlists have been Updated",10000,"DefaultIconInfo.png")')
-    xbmc.executebuiltin('XBMC.ActivateWindow(Music,Playlists)')
 
-
-if __name__  == '__main__': main()
+if __name__  == '__main__':
+    args = urlparse.parse_qs(sys.argv[2][1:])
+    action = args.get('action', None)
+    if action is None:
+        # playlists
+        xbmc.executebuiltin('XBMC.ActivateWindow(Music,Playlists)')
+    elif action[0] == 'convert':
+        # execute
+        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Updating playlists...",3000,"DefaultIconInfo.png")')
+        convert()
+        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Playlists have been Updated",10000,"DefaultIconInfo.png")')

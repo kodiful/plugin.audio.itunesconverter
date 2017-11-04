@@ -16,5 +16,7 @@
     <setting id="create_html" type="bool" label="30101"/>
     <setting id="html_path" type="folder" label="30102" default="" enable="eq(-1,true)"/>
   </category>
+  <category label="30200">
+    <setting label="30201" type="action" option="close" action="RunPlugin(plugin://plugin.audio.itunesconverter/?action=convert)"/>
+  </category>
 </settings>
-

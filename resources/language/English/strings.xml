@@ -14,7 +14,9 @@
   <string id="30100">HTML</string>
   <string id="30101">Create HTML playlist</string>
   <string id="30102">Path to HTML playlist directory</string>
-  <string id="30901">Set path to iTunes Music Library</string>
-  <string id="30902">Set path to HTML playlist directory</string>
-  <string id="30903">Can't retrieve iTunes Music Library</string>
+  <string id="30103">Set path to iTunes Music Library</string>
+  <string id="30104">Set path to HTML playlist directory</string>
+  <string id="30105">Can't retrieve iTunes Music Library</string>
+  <string id="30200">Convert</string>
+  <string id="30201">Convert</string>
 </strings>
