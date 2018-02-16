@@ -241,7 +241,7 @@ def converttoindex(root, dirname):
         outf.write(template['header'].format(title="iTunes"))
     else:
         outf.write(template['header'].format(title=dirname))
-    for link in os.listdir(dirpath):
+    for link in sorted(os.listdir(dirpath)):
         if link != "index.html":
             outf.write(template['index'].format(link=link,name=link.replace(".html", "")))
     outf.write(template['footer'])
