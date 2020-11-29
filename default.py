@@ -182,7 +182,7 @@ class Music:
 
 class Converter:
 
-    def __init__(self):
+    def __init__(self, openDialog=False):
         # iTunes Music Libraryへのパス
         library_path = Const.ADDON.getSetting('library_path')
         # iTunes Music Libraryの有無をチェック
@@ -227,6 +227,12 @@ class Converter:
             self.old_path = Const.ADDON.getSetting('oldmusic_path')
         else:
             self.new_path = self.old_path = ''
+        # 設定ダイアログを開く
+        if openDialog:
+            xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+            xbmc.executebuiltin('SetFocus(100)') # select 1st category
+            xbmc.executebuiltin('SetFocus(200)') # select 1st control
+            sys.exit()
 
     def loadplist(self, file):
         parser = iterparse(file)
@@ -392,8 +398,6 @@ if __name__  == '__main__':
     args = urlparse.parse_qs(sys.argv[2][1:])
     action = args.get('action', None)
     if action is None:
-        xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-        xbmc.executebuiltin('SetFocus(100)') # select 1st category
-        xbmc.executebuiltin('SetFocus(200)') # select 1st control
+        Converter(openDialog=True)
     else:
         Converter().convert()
