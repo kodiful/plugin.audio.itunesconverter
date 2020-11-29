@@ -1,5 +1,5 @@
     <li>
-      <div class="name"><a href="#{trackId}" onclick="description(this);return false;">{name}</a></div>
+      <div class="name"><a href="#{trackId}" onclick="description(this);return false;">{title}</a></div>
       <div class="hidden">
         <div class="sub"><span>artist:&nbsp;</span>{artist}</div>
         <div class="sub"><span>album:&nbsp;</span>{album}</div>

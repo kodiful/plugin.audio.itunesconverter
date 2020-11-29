@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
+# for Windows
+# old_path = 'file://localhost/'
+# new_path    = ''
+
+# for Windows(Bootcamp)
+# old_path = 'file://localhost/'
+# new_path    = 'E:/'
+
+# for MacOS
+# old_path = 'file:///'
+# new_path    = '/'
 
 import xbmc
 import xbmcaddon
@@ -8,360 +18,382 @@ import xbmcplugin
 import xbmcgui
 import xbmcvfs
 
-import sys, urllib
-import os, re
-import exceptions
-import base64, datetime
-import codecs
+import sys
+import os
+import re
+import base64
+import datetime
 import unicodedata
+import urllib
 import urlparse
+import inspect
 
 from xml.etree.ElementTree import *
 
-addon = xbmcaddon.Addon('plugin.audio.itunesconverter')
+class Const:
 
-template = {}
-foldertree = {"m3u":[], "html":[]}
+    # アドオン
+    ADDON = xbmcaddon.Addon()
+    ADDON_ID = ADDON.getAddonInfo('id')
+    ADDON_NAME = ADDON.getAddonInfo('name')
 
-# ファイル/ディレクトリパス
-profilepath = xbmc.translatePath(addon.getAddonInfo('profile').decode('utf-8'))
-librarypath = os.path.join(profilepath, 'iTunes Music Library.xml')
+    # ファイル/ディレクトリパス
+    PROFILE_PATH = xbmc.translatePath(ADDON.getAddonInfo('profile'))
+    LIBRARY_PATH = os.path.join(PROFILE_PATH, 'iTunes Music Library.xml')
+    PLUGIN_PATH = xbmc.translatePath(ADDON.getAddonInfo('path'))
+    RESOURCES_PATH = os.path.join(PLUGIN_PATH, 'resources')
+    DATA_PATH = os.path.join(RESOURCES_PATH, 'data')
 
-unmarshallers = {
-    # collections
-    "array": lambda x: [v.text for v in x],
-    "dict": lambda x: dict((x[i].text, x[i+1].text) for i in range(0, len(x), 2)),
-    "key": lambda x: x.text or "",
-    # simple types
-    "string": lambda x: x.text or "",
-    "data": lambda x: base64.decodestring(x.text or ""),
-    "date": lambda x: datetime.datetime(*map(int, re.findall("\d+", x.text))),
-    "true": lambda x: True,
-    "false": lambda x: False,
-    "real": lambda x: float(x.text),
-    "integer": lambda x: int(x.text),
-}
+    # 変換関数群
+    UNMARSHALLERS = {
+        # collections
+        'array': lambda x: [v.text for v in x],
+        'dict': lambda x: dict((x[i].text, x[i+1].text) for i in range(0, len(x), 2)),
+        'key': lambda x: x.text or '',
+        # simple types
+        'string': lambda x: x.text or '',
+        'data': lambda x: base64.decodestring(x.text or ''),
+        'date': lambda x: datetime.datetime(*map(int, re.findall('\d+', x.text))),
+        'true': lambda x: True,
+        'false': lambda x: False,
+        'real': lambda x: float(x.text),
+        'integer': lambda x: int(x.text),
+    }
 
-
-def loadplist(file):
-    parser = iterparse(file)
-    for action, elem in parser:
-        unmarshal = unmarshallers.get(elem.tag)
-        if unmarshal:
-            data = unmarshal(elem)
-            elem.clear()
-            elem.text = data
-        elif elem.tag != "plist":
-           raise IOError("unknown plist type: %r" % elem.tag)
-    return parser.root[0].text
-
-
-def loadtemplate(file):
-    # file path
-    plugin_path = xbmc.translatePath(addon.getAddonInfo('path'))
-    resources_path = os.path.join(plugin_path, "resources")
-    data_path = os.path.join(resources_path, "data")
-    # load
-    f = codecs.open(os.path.join(data_path, file),'r','utf-8')
-    template = f.read()
-    f.close()
-    return template
-
-
-def setup(plist, path, fileType, isFolder=False):
-    sid = plist['Playlist Persistent ID'];
-    try:
-        pid = plist['Parent Persistent ID'];
-    except:
-        pid = None
-    name = plist['Name'].replace('/', ' - ')
-    name = unicodedata.normalize('NFC', name)
-
-    # skip some top level playlists
-    #if not isFolder and pid is None and re.search("^(?:####!####|App|Podcast|テレビ番組|ミュージック|ムービー|ホームビデオ|ライブラリ|購入したもの)$",name) is not None:
-    try:
-        master = plist['Master'];
-        return None
-    except:
-        pass
-    try:
-        special = plist['Distinguished Kind'];
-        return None
-    except:
-        pass
-
-    item = {"sid":sid, "pid":pid, "name":name}
-    tree = foldertree[fileType]
-    if isFolder:
-        tree.append(item)
-
-    dirs = [name]
-    f1 = item
-    while not f1['pid'] is None:
-        pid = f1['pid']
-        for i in range(len(tree)):
-            f2 = tree[i]
-            if f2['sid'] == pid:
-                f1 = f2
-                dirs.insert(0, f1['name'])
-                break
-
-    if not isFolder:
-        dirs[-1] += "." + fileType
-
-    result = path
-    for d in dirs:
-        result = os.path.join(result, d)
-
-    xbmc.log(result.encode('utf-8','ignore'))
-    return result
-
-
-def converttom3u(p, playlist, oldmusicpath, musicpath, m3upath):
-    # convert filename
-    filename = setup(p, m3upath, "m3u", isFolder=False)
-    if filename is None: return
-    # open the future playlist file
-    outf = codecs.open(filename,'w','utf-8')
-    # write the m3u header
-    outf.write("#EXTM3U\n")
-    # dictionnary with all tracks {'Track ID : 4042},{'Track ID : 4046}, etc
-    tracks = p['Playlist Items']
-    # Iterate through all tracks in the current playlist
-    for t in tracks:
-        try:
-            track_id = t['Track ID']
-            music = playlist['Tracks'][str(track_id)]
-            # title
-            title = unicodedata.normalize('NFC', music['Name'].encode('utf-8','ignore').decode('utf-8')) # .encode().decode() makes this line work
-            # total time
-            totalTime = music['Total Time']
-            # location
-            location = music['Location']
-            # write file locations except m4p
-            if re.search('\.m4p$',location) is None:
-                # title & duration
-                outf.write("#EXTINF:%d,%s\n" % (int(totalTime/1000),title))
-                # iTunes put quote to transform space to %20 and so, we have to convert them
-                location = urllib.unquote(location).decode('utf-8')
-                location = unicodedata.normalize('NFC', location)
-                # Replace old location to the new location
-                if oldmusicpath!="": location = location.replace(oldmusicpath, musicpath)
-                # write the file location in the playlist file
-                outf.write("%s\n" % (location))
-        except:
-            print 'parse failed in Track ID %s' % t['Track ID']
-            pass
-    outf.close()
-
-
-def converttohtml(p, playlist, htmlpath):
-    # convert filename
-    filename = setup(p, htmlpath, "html", isFolder=False)
-    if filename is None: return
-    # open the future playlist file
-    outf = codecs.open(filename,'w','utf-8')
-    # write html header
-    outf.write(template['header'].format(title=p['Name']))
-    # dictionary with all tracks {'Track ID : 4042},{'Track ID : 4046}, etc
-    tracks = p['Playlist Items']
-    # iterate through all tracks in the current playlist
-    for t in tracks:
-        # trackId
-        trackId = t['Track ID']
-        music = playlist['Tracks'][str(trackId)]
-        # name
-        try:
-            name = music['Name']
-        except:
-            name = "n/a"
-        # artist
-        try:
-            artist = music['Artist']
-        except:
-            artist = "n/a"
-        # album
-        try:
-            album = music['Album']
-        except:
-            album = "n/a"
-        # totaltime
-        try:
-            totalTime = music['Total Time']
-            totalTime /= 1000
-            hh = totalTime/3600
-            mm = (totalTime-hh*3600)/60
-            ss = totalTime%60
-            if hh > 0:
-                duration = "%d:%02d:%02d" % (hh,mm,ss)
+    # ユーティリティ
+    @staticmethod
+    def log(*messages):
+        m = []
+        for message in messages:
+            if isinstance(message, str):
+                m.append(message)
+            elif isinstance(message, unicode):
+                m.append(message.encode('utf-8'))
             else:
-                duration = "%d:%02d" % (mm,ss)
-        except:
-            duration = "n/a"
-        # disc
-        try:
-            discNumber = music['Disc Number']
-            discCount = music['Disc Count']
-            disc = "%d/%d" % (discNumber,discCount)
-        except:
-            disc = "n/a"
-        # track
-        try:
-            trackNumber = music['Track Number']
-            trackCount = music['Track Count']
-            track = "%d/%d" % (trackNumber,trackCount)
-        except:
-            try:
-                if trackNumber > 100:
-                    track = trackNumber-100
-                else:
-                    track = trackNumber
-            except:
-                track = "n/a"
-        # year
-        try:
-            year = music['Year']
-            if year == 9999: year = "n/a"
-        except:
-            year = "n/a"
-        # date added
-        dateAdded = music['Date Added']
-        # write as html
-        outf.write(template['description'].format(trackId=trackId,name=name,artist=artist,album=album,year=year,duration=duration,track=track,disc=disc,dateAdded=dateAdded))
-    # write html footer
-    outf.write(template['footer'])
-    outf.close()
+                m.append(str(message))
+        frame = inspect.currentframe(1)
+        xbmc.log(str('%s: %s(%d): %s: %s') % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, str(' ').join(m)), xbmc.LOGNOTICE)
+
+    @staticmethod
+    def notify(id):
+        message = Const.ADDON.getLocalizedString(id).encode('utf-8')
+        xbmc.executebuiltin('XBMC.Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
+
+    @staticmethod
+    def normalize(text):
+        return unicodedata.normalize('NFC', text).encode('utf-8') if isinstance(text, unicode) else text
+
+    @staticmethod
+    def cleanup(dir):
+        for root, dirs, files in os.walk(dir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
 
 
-def converttoindex(root, dirname):
-    dirpath = os.path.join(root, dirname)
-    filename = os.path.join(dirpath, "index.html")
-    outf = codecs.open(filename,'w','utf-8')
-    if dirname == "":
-        outf.write(template['header'].format(title="iTunes"))
-    else:
-        outf.write(template['header'].format(title=dirname))
-    for link in sorted(os.listdir(dirpath)):
-        if link != "index.html":
-            outf.write(template['index'].format(link=link,name=link.replace(".html", "")))
-    outf.write(template['footer'])
-    outf.close()
+class Music:
+
+    def __init__(self, music):
+        self.music = music
+
+    def location(self, old_path, new_path):
+        location = self.music.get('Location')
+        # write file locations except m4p
+        if location and re.search('\.m4p$',location) is None:
+            # iTunes put quote to transform space to %20 and so, we have to convert them
+            location = Const.normalize(urllib.unquote(location).decode('utf-8'))
+            # replace old location by the new location
+            if old_path and location.find(old_path) == 0:
+                location = location.replace(old_path, new_path)
+        else:
+            location = None
+        return location
+
+    @property
+    def title(self):
+        title = self.music.get('Name')
+        return Const.normalize(title) if title else 'n/a'
+
+    @property
+    def artist(self):
+        artist = self.music.get('Artist')
+        return Const.normalize(artist) if artist else 'n/a'
+
+    @property
+    def album(self):
+        album = self.music.get('Album')
+        return Const.normalize(album) if album else 'n/a'
+
+    @property
+    def totalTime(self):
+        totalTime = self.music.get('Total Time')
+        return totalTime if totalTime else 'n/a'
+
+    @property
+    def duration(self):
+        duration = self.music.get('Total Time')
+        if duration:
+            duration /= 1000
+            hh = duration/3600
+            mm = (duration-hh*3600)/60
+            ss = duration%60
+            if hh > 0:
+                duration = '%d:%02d:%02d' % (hh,mm,ss)
+            else:
+                duration = '%d:%02d' % (mm,ss)
+        else:
+            duration = 'n/a'
+        return duration
+
+    @property
+    def disc(self):
+        discNumber = self.music.get('Disc Number')
+        discCount = self.music.get('Disc Count')
+        if discNumber and discCount:
+            disc = '%d/%d' % (discNumber,discCount)
+        else:
+            disc = 'n/a'
+        return disc
+
+    @property
+    def track(self):
+        trackNumber = self.music.get('Track Number')
+        trackCount = self.music.get('Track Count')
+        if trackNumber and trackCount:
+            track = '%d/%d' % (trackNumber,trackCount)
+        else:
+            track = 'n/a'
+        return track
+
+    @property
+    def year(self):
+        year = self.music.get('Year')
+        if year:
+            if year == 9999: year = 'n/a'
+        else:
+            year = 'n/a'
+        return year
+
+    @property
+    def dateAdded(self):
+        return self.music.get('Date Added', 'n/a')
 
 
-def convert():
+class Converter:
 
-    # for Windows
-    # oldmusicpath = "file://localhost/"
-    # musicpath    = ""
-
-    # for Windows(Bootcamp)
-    # oldmusicpath = "file://localhost/"
-    # musicpath    = "E:/"
-
-    # for MacOS
-    # oldmusicpath = "file:///"
-    # musicpath    = "/"
-
-    # itunes music library
-    librarysrc = addon.getSetting('library_path').decode('utf-8')
-
-    # check file
-    if not xbmcvfs.exists(librarysrc):
-        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30103)
-        xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
-        addon.openSettings()
-        sys.exit()
-
-    # copy file
-    try:
-        xbmcvfs.copy(librarysrc, librarypath)
-    except:
-        builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30105)
-        xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
-        addon.openSettings()
-        sys.exit()
-
-    # htmlpath
-    if addon.getSetting('create_html') == "false":
-        htmlpath = ""
-    else:
-        htmlpath = addon.getSetting('html_path').decode('utf-8')
-        if htmlpath == "" or not os.path.isdir(htmlpath):
-            builtin = 'XBMC.Notification("iTunes Playlist Converter","%s",10000,"DefaultIconError.png")' % addon.getLocalizedString(30104)
-            xbmc.executebuiltin(builtin.encode('utf-8','ignore'))
-            addon.openSettings()
+    def __init__(self):
+        # iTunes Music Libraryへのパス
+        library_path = Const.ADDON.getSetting('library_path')
+        # iTunes Music Libraryの有無をチェック
+        if not xbmcvfs.exists(library_path):
+            Const.notify(30103)
+            xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+            xbmc.executebuiltin('SetFocus(101)') # select 2th category
+            xbmc.executebuiltin('SetFocus(200)') # select 1st control
             sys.exit()
+        # iTunes Music Libraryを所定のフォルダへコピー
+        try:
+            xbmcvfs.copy(library_path, Const.LIBRARY_PATH)
+        except:
+            Const.notify(30105)
+            xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+            xbmc.executebuiltin('SetFocus(101)') # select 2th category
+            xbmc.executebuiltin('SetFocus(200)') # select 1st control
+            sys.exit()
+        # m3uのパスをチェック
+        m3u_path = xbmc.translatePath('special://profile/playlists/music/')
+        if os.path.isdir(m3u_path):
+            Const.cleanup(m3u_path)
+        else:
+            os.makedirs(m3u_path)
+        self.m3u_path = m3u_path
+        # htmlのパスをチェック
+        html_path = ''
+        if Const.ADDON.getSetting('create_html') == 'true':
+            html_path = Const.ADDON.getSetting('html_path')
+            if os.path.isdir(html_path):
+                Const.cleanup(html_path)
+            else:
+                Const.notify(30104)
+                xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+                xbmc.executebuiltin('SetFocus(102)') # select 3rd category
+                xbmc.executebuiltin('SetFocus(201)') # select 2nd control
+                sys.exit()
+        self.html_path = html_path
+        # ファイルパス変換
+        if Const.ADDON.getSetting('translate_path') == 'true':
+            self.new_path = Const.ADDON.getSetting('music_path')
+            self.old_path = Const.ADDON.getSetting('oldmusic_path')
+        else:
+            self.new_path = self.old_path = ''
 
-    # file path translation
-    if addon.getSetting('translate_path') == "false":
-        musicpath = oldmusicpath = ""
-    else:
-        musicpath = addon.getSetting('music_path').decode('utf-8')
-        oldmusicpath = addon.getSetting('oldmusic_path').decode('utf-8')
+    def loadplist(self, file):
+        parser = iterparse(file)
+        for action, elem in parser:
+            unmarshal = Const.UNMARSHALLERS.get(elem.tag)
+            if unmarshal:
+                data = unmarshal(elem)
+                elem.clear()
+                elem.text = data
+            elif elem.tag != 'plist':
+                raise IOError('unknown plist type: %r' % elem.tag)
+        return parser.root[0].text
 
-    # m3u path
-    m3upath = xbmc.translatePath('special://profile/playlists/music/').decode('utf-8')
-    if not os.path.isdir(m3upath):
-        os.makedirs(m3upath)
-    else:
-        # cleanup
-        for root, dirs, files in os.walk(m3upath, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
+    def setup_path(self, plist, fileType=None):
+        # skip some top level playlists
+        if plist.get('Master'): return None
+        if plist.get('Distinguished Kind'): return None
+        # append node to tree
+        item = {
+            'sid': plist.get('Playlist Persistent ID'),
+            'pid': plist.get('Parent Persistent ID'),
+            'name': Const.normalize(plist['Name'].replace('/', ' - '))
+        }
+        tree = self.tree
+        if fileType is None:
+            tree.append(item)
+        dirs = [item['name']]
+        f1 = item
+        while not f1['pid'] is None:
+            pid = f1['pid']
+            for f2 in tree:
+                if f2['sid'] == pid:
+                    f1 = f2
+                    dirs.insert(0, f1['name'])
+                    break
+        if fileType:
+            dirs[-1] += '.' + fileType
+        result = self.root
+        for d in dirs:
+            result = os.path.join(result, d)
+        return result
+
+    def write_m3u(self, p):
+        # このプレイリストのファイルパス
+        filepath = self.setup_path(p, fileType='m3u')
+        if filepath is None: return
+        # 書き込み先のファイルを開く
+        with open(filepath, 'w') as f:
+            # m3uヘッダを書き込む
+            f.write('#EXTM3U\n')
+            # プレイリストの全てのトラックについて
+            for t in p['Playlist Items']:
+                try:
+                    trackId = t['Track ID']
+                    music = Music(self.playlist['Tracks'][str(trackId)])
+                    # 属性を書き込む
+                    location = music.location(self.old_path, self.new_path)
+                    if location:
+                        f.write('#EXTINF:{totalTime},{title}\n'.format(
+                            totalTime=int(music.totalTime/1000),
+                            title=music.title))
+                        f.write('{location}\n'.format(
+                            location=location))
+                except:
+                    Const.log('parse failed in Track ID %s' % t['Track ID'])
+
+    def write_html(self, p):
+        # このプレイリストのファイルパス
+        filepath = self.setup_path(p, fileType='html')
+        if filepath is None: return
+        # 書き込み先のファイルを開く
+        with open(filepath, 'w') as f:
+            # htmlヘッダを書き込む
+            f.write(self.template['header'].format(
+                title=Const.normalize(p['Name'])))
+            # プレイリストの全てのトラックについて
+            for t in p['Playlist Items']:
+                try:
+                    trackId = t['Track ID']
+                    music = Music(self.playlist['Tracks'][str(trackId)])
+                    # 属性を書き込む
+                    f.write(self.template['description'].format(
+                        trackId=trackId,
+                        title=music.title,
+                        artist=music.artist,
+                        album=music.album,
+                        year=music.year,
+                        duration=music.duration,
+                        track=music.track,
+                        disc=music.disc,
+                        dateAdded=music.dateAdded))
+                except:
+                    Const.log('parse failed in Track ID %s' % t['Track ID'])
+            # htmlフッタを書き込む
+            f.write(self.template['footer'])
+
+    def write_index(self, root, dirname):
+        dirpath = os.path.join(root, dirname)
+        filepath = os.path.join(dirpath, 'index.html')
+        with open(filepath, 'w') as f:
+            # htmlヘッダを書き込む
+            f.write(self.template['header'].format(
+                title=dirname if dirname else 'iTunes'))
+            # ディレクトリの自分以外のファイルについて
+            for link in sorted(os.listdir(dirpath)):
+                if link != 'index.html':
+                    f.write(self.template['index'].format(
+                        link=link,
+                        name=link.replace('.html', '')))
+            # htmlフッタを書き込む
+            f.write(self.template['footer'])
+
+    def convert_to_m3u(self):
+        # 作業変数を初期化
+        self.tree = []
+        self.root = self.m3u_path
+        # 全てのプレイリストについて
+        for p in self.playlist['Playlists']:
+            # ディレクトリを作成
+            if 'Folder' in p:
+                os.makedirs(self.setup_path(p))
+            # ファイルを作成
+            elif 'Playlist Items' in p:
+                self.write_m3u(p)
+
+    def convert_to_html(self):
+        # 作業変数を初期化
+        self.tree = []
+        self.root = self.html_path
+        # テンプレートを読み込む
+        self.template = {}
+        for section in ('header','footer','description','index'):
+            with open(os.path.join(Const.DATA_PATH, section),'r') as f:
+                self.template[section]  = f.read()
+        # 全てのプレイリストについて
+        for p in self.playlist['Playlists']:
+            # ディレクトリを作成
+            if 'Folder' in p:
+                os.makedirs(self.setup_path(p))
+            # ファイルを作成
+            elif 'Playlist Items' in p:
+                self.write_html(p)
+        # 各ディレクトリにインデクスファイルを作成
+        for root, dirs, files in os.walk(self.html_path, topdown=False):
             for name in dirs:
-                os.rmdir(os.path.join(root, name))
+                self.write_index(root, name)
+            self.write_index(root, '')
 
-    # htmlpath
-    if htmlpath != "" and os.path.isdir(htmlpath):
-        # cleanup
-        for root, dirs, files in os.walk(htmlpath, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
-
-    # load playlist
-    playlist = loadplist(librarypath)
-
-    # load templates
-    for section in ["header","footer","description","index"]:
-        template[section] = loadtemplate(section)
-
-    # iterate through all playlists
-    for p in playlist['Playlists']:
-        # folder
-        if 'Folder' in p:
-            # make m3u directories
-            dirname = setup(p, m3upath, "m3u", isFolder=True)
-            os.makedirs(dirname)
-            # make html directories
-            if htmlpath != "":
-                dirname = setup(p, htmlpath, "html", isFolder=True)
-                os.makedirs(dirname)
-        # playlist
-        elif 'Playlist Items' in p:
-            # convert to m3u file
-            converttom3u(p, playlist, oldmusicpath, musicpath, m3upath)
-            # convert to html file
-            if htmlpath != "":
-                converttohtml(p, playlist, htmlpath)
-
-    # make html indices
-    if htmlpath != "":
-        for root, dirs, files in os.walk(htmlpath, topdown=False):
-            for name in dirs:
-                converttoindex(root, name)
-            converttoindex(root, "")
+    def convert(self):
+        # 開始通知
+        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Updating playlists...",3000,"DefaultIconInfo.png")')
+        # load playlist
+        self.playlist = self.loadplist(Const.LIBRARY_PATH)
+        # generate m3u playlists
+        self.convert_to_m3u()
+        # generate html playlists
+        if Const.ADDON.getSetting('create_html') == 'true': self.convert_to_html()
+        # 完了通知
+        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Playlists have been Updated",10000,"DefaultIconInfo.png")')
 
 
 if __name__  == '__main__':
     args = urlparse.parse_qs(sys.argv[2][1:])
     action = args.get('action', None)
     if action is None:
-        # playlists
-        xbmc.executebuiltin('XBMC.ActivateWindow(Music,Playlists)')
-    elif action[0] == 'convert':
-        # execute
-        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Updating playlists...",3000,"DefaultIconInfo.png")')
-        convert()
-        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Playlists have been Updated",10000,"DefaultIconInfo.png")')
+        xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+        xbmc.executebuiltin('SetFocus(100)') # select 1st category
+        xbmc.executebuiltin('SetFocus(200)') # select 1st control
+    else:
+        Converter().convert()
