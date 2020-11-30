@@ -189,7 +189,7 @@ class Converter:
         if not xbmcvfs.exists(library_path):
             Const.notify(30103)
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(101)') # select 2th category
+            xbmc.executebuiltin('SetFocus(100)') # select 1st category
             xbmc.executebuiltin('SetFocus(200)') # select 1st control
             sys.exit()
         # iTunes Music Libraryを所定のフォルダへコピー
@@ -198,7 +198,7 @@ class Converter:
         except:
             Const.notify(30105)
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(101)') # select 2th category
+            xbmc.executebuiltin('SetFocus(100)') # select 1st category
             xbmc.executebuiltin('SetFocus(200)') # select 1st control
             sys.exit()
         # m3uのパスをチェック
@@ -217,7 +217,7 @@ class Converter:
             else:
                 Const.notify(30104)
                 xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-                xbmc.executebuiltin('SetFocus(102)') # select 3rd category
+                xbmc.executebuiltin('SetFocus(101)') # select 2nd category
                 xbmc.executebuiltin('SetFocus(201)') # select 2nd control
                 sys.exit()
         self.html_path = html_path
@@ -230,7 +230,7 @@ class Converter:
         # 設定ダイアログを開く
         if openDialog:
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(100)') # select 1st category
+            xbmc.executebuiltin('SetFocus(102)') # select 3rd category
             xbmc.executebuiltin('SetFocus(200)') # select 1st control
             sys.exit()
 
