@@ -391,7 +391,7 @@ class Converter:
         # generate html playlists
         if Const.ADDON.getSetting('create_html') == 'true': self.convert_to_html()
         # 完了通知
-        xbmc.executebuiltin('XBMC.Notification("%s","Playlists have been Updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
+        xbmc.executebuiltin('XBMC.Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
 
 
 if __name__  == '__main__':
