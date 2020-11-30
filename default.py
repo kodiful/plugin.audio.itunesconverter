@@ -383,7 +383,7 @@ class Converter:
 
     def convert(self):
         # 開始通知
-        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Updating playlists...",3000,"DefaultIconInfo.png")')
+        xbmc.executebuiltin('XBMC.Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
         # load playlist
         self.playlist = self.loadplist(Const.LIBRARY_PATH)
         # generate m3u playlists
@@ -391,7 +391,7 @@ class Converter:
         # generate html playlists
         if Const.ADDON.getSetting('create_html') == 'true': self.convert_to_html()
         # 完了通知
-        xbmc.executebuiltin('XBMC.Notification("Playlist Converter","Playlists have been Updated",10000,"DefaultIconInfo.png")')
+        xbmc.executebuiltin('XBMC.Notification("%s","Playlists have been Updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
 
 
 if __name__  == '__main__':
