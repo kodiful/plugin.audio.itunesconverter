@@ -16,6 +16,6 @@
   <string id="30102">HTMLプレイリストのディレクトリへのパス</string>
   <string id="30103">ライブラリ.xmlへのパスを設定してください</string>
   <string id="30104">HTMLプレイリストのディレクトリへのパスを設定してください</string>
-  <string id="30105">iTunes Music Libraryが取得できません</string>
+  <string id="30105">ライブラリ.xmlが取得できません</string>
   <string id="30202">iTunesライブラリをプレイリストに変換しますか？ 変換には数分かかることがあります。</string>
 </strings>
