@@ -7,15 +7,15 @@
       strings 33000 thru 33999 reserved for common strings used in add-ons
   -->
   <string id="30000">General</string>
-  <string id="30001">Path to iTunes Music Library.xml</string>
+  <string id="30001">Path to Library.xml</string>
   <string id="30002">Translate file paths</string>
   <string id="30003">Old path to replace</string>
   <string id="30004">New path</string>
   <string id="30100">HTML</string>
   <string id="30101">Create HTML playlist</string>
   <string id="30102">Path to HTML playlist directory</string>
-  <string id="30103">Set path to iTunes Music Library</string>
+  <string id="30103">Set path to Library.xml</string>
   <string id="30104">Set path to HTML playlist directory</string>
   <string id="30105">Can't retrieve iTunes Music Library</string>
-  <string id="30202">Do you convert iTunes library to playlist? It may take several minutes.</string>
+  <string id="30202">Do you convert iTunes library to playlists? It may take several minutes.</string>
 </strings>

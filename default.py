@@ -37,6 +37,12 @@ class Const:
     ADDON_ID = ADDON.getAddonInfo('id')
     ADDON_NAME = ADDON.getAddonInfo('name')
 
+    GET = ADDON.getSetting
+    SET = ADDON.setSetting
+    #STR = ADDON.getLocalizedString
+    @staticmethod
+    def STR(id): return Const.ADDON.getLocalizedString(id).encode('utf-8')
+
     # ファイル/ディレクトリパス
     PROFILE_PATH = xbmc.translatePath(ADDON.getAddonInfo('profile'))
     LIBRARY_PATH = os.path.join(PROFILE_PATH, 'iTunes Music Library.xml')
@@ -76,7 +82,7 @@ class Const:
 
     @staticmethod
     def notify(id):
-        message = Const.ADDON.getLocalizedString(id).encode('utf-8')
+        message = Const.STR(id)
         xbmc.executebuiltin('XBMC.Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
 
     @staticmethod
@@ -184,7 +190,7 @@ class Converter:
 
     def __init__(self):
         # iTunes Music Libraryへのパス
-        library_path = Const.ADDON.getSetting('library_path')
+        library_path = Const.GET('library_path')
         # iTunes Music Libraryの有無をチェック
         if not xbmcvfs.exists(library_path):
             Const.notify(30103)
@@ -210,8 +216,8 @@ class Converter:
         self.m3u_path = m3u_path
         # htmlのパスをチェック
         html_path = ''
-        if Const.ADDON.getSetting('create_html') == 'true':
-            html_path = Const.ADDON.getSetting('html_path')
+        if Const.GET('create_html') == 'true':
+            html_path = Const.GET('html_path')
             if os.path.isdir(html_path):
                 Const.cleanup(html_path)
             else:
@@ -222,9 +228,9 @@ class Converter:
                 sys.exit()
         self.html_path = html_path
         # ファイルパス変換
-        if Const.ADDON.getSetting('translate_path') == 'true':
-            self.new_path = Const.ADDON.getSetting('music_path')
-            self.old_path = Const.ADDON.getSetting('oldmusic_path')
+        if Const.GET('translate_path') == 'true':
+            self.new_path = Const.GET('music_path')
+            self.old_path = Const.GET('oldmusic_path')
         else:
             self.new_path = self.old_path = ''
 
@@ -383,16 +389,16 @@ class Converter:
         # generate m3u playlists
         self.convert_to_m3u()
         # generate html playlists
-        if Const.ADDON.getSetting('create_html') == 'true': self.convert_to_html()
+        if Const.GET('create_html') == 'true': self.convert_to_html()
         # 完了通知
         xbmc.executebuiltin('XBMC.Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
 
 
 if __name__  == '__main__':
     args = urlparse.parse_qs(sys.argv[2][1:])
-    action = args.get('action', None)
+    action = args.get('action')
     if action is None:
-        if xbmcgui.Dialog().yesno(Const.ADDON_NAME, Const.ADDON.getLocalizedString(30202).encode('utf-8')):
+        if xbmcgui.Dialog().yesno(Const.ADDON_NAME, Const.STR(30202)):
             xbmc.executebuiltin('XBMC.RunPlugin(plugin://%s/?action=convert)' % Const.ADDON_ID)
     else:
         Converter().convert()
