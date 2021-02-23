@@ -23,12 +23,12 @@ import os
 import re
 import base64
 import datetime
-import unicodedata
-import urllib
-import urlparse
 import inspect
 
+from urllib.parse import parse_qs
+from urllib.parse import unquote
 from xml.etree.ElementTree import *
+
 
 class Const:
 
@@ -39,14 +39,12 @@ class Const:
 
     GET = ADDON.getSetting
     SET = ADDON.setSetting
-    #STR = ADDON.getLocalizedString
-    @staticmethod
-    def STR(id): return Const.ADDON.getLocalizedString(id).encode('utf-8')
+    STR = ADDON.getLocalizedString
 
     # ファイル/ディレクトリパス
-    PROFILE_PATH = xbmc.translatePath(ADDON.getAddonInfo('profile'))
+    PROFILE_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('profile'))
     LIBRARY_PATH = os.path.join(PROFILE_PATH, 'iTunes Music Library.xml')
-    PLUGIN_PATH = xbmc.translatePath(ADDON.getAddonInfo('path'))
+    PLUGIN_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo('path'))
     RESOURCES_PATH = os.path.join(PLUGIN_PATH, 'resources')
     DATA_PATH = os.path.join(RESOURCES_PATH, 'data')
 
@@ -58,8 +56,8 @@ class Const:
         'key': lambda x: x.text or '',
         # simple types
         'string': lambda x: x.text or '',
-        'data': lambda x: base64.decodestring(x.text or ''),
-        'date': lambda x: datetime.datetime(*map(int, re.findall('\d+', x.text))),
+        'data': lambda x: base64.decodestring(x.text.encode()),
+        'date': lambda x: datetime.datetime(*map(int, re.findall(r'\d+', x.text))),
         'true': lambda x: True,
         'false': lambda x: False,
         'real': lambda x: float(x.text),
@@ -71,23 +69,14 @@ class Const:
     def log(*messages):
         m = []
         for message in messages:
-            if isinstance(message, str):
-                m.append(message)
-            elif isinstance(message, unicode):
-                m.append(message.encode('utf-8'))
-            else:
-                m.append(str(message))
-        frame = inspect.currentframe(1)
-        xbmc.log(str('%s: %s(%d): %s: %s') % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, str(' ').join(m)), xbmc.LOGNOTICE)
+            m.append(str(message))
+        frame = inspect.currentframe().f_back
+        xbmc.log(str('%s: %s(%d): %s: %s') % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, str(' ').join(m)), xbmc.LOGINFO)
 
     @staticmethod
     def notify(id):
         message = Const.STR(id)
-        xbmc.executebuiltin('XBMC.Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
-
-    @staticmethod
-    def normalize(text):
-        return unicodedata.normalize('NFC', text).encode('utf-8') if isinstance(text, unicode) else text
+        xbmc.executebuiltin('Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
 
     @staticmethod
     def cleanup(dir):
@@ -106,9 +95,9 @@ class Music:
     def location(self, old_path, new_path):
         location = self.music.get('Location')
         # write file locations except m4p
-        if location and re.search('\.m4p$',location) is None:
+        if location and re.search(r'\.m4p$', location) is None:
             # iTunes put quote to transform space to %20 and so, we have to convert them
-            location = Const.normalize(urllib.unquote(location).decode('utf-8'))
+            location = unquote(location)
             # replace old location by the new location
             if old_path and location.find(old_path) == 0:
                 location = location.replace(old_path, new_path)
@@ -118,36 +107,32 @@ class Music:
 
     @property
     def title(self):
-        title = self.music.get('Name')
-        return Const.normalize(title) if title else 'n/a'
+        return self.music.get('Name', 'n/a')
 
     @property
     def artist(self):
-        artist = self.music.get('Artist')
-        return Const.normalize(artist) if artist else 'n/a'
+        return self.music.get('Artist', 'n/a')
 
     @property
     def album(self):
-        album = self.music.get('Album')
-        return Const.normalize(album) if album else 'n/a'
+        return self.music.get('Album', 'n/a')
 
     @property
     def totalTime(self):
-        totalTime = self.music.get('Total Time')
-        return totalTime if totalTime else 'n/a'
+        return self.music.get('Total Time', 'n/a')
 
     @property
     def duration(self):
         duration = self.music.get('Total Time')
         if duration:
             duration /= 1000
-            hh = duration/3600
-            mm = (duration-hh*3600)/60
-            ss = duration%60
+            hh = duration / 3600
+            mm = (duration - hh * 3600) / 60
+            ss = duration % 60
             if hh > 0:
-                duration = '%d:%02d:%02d' % (hh,mm,ss)
+                duration = '%d:%02d:%02d' % (hh, mm, ss)
             else:
-                duration = '%d:%02d' % (mm,ss)
+                duration = '%d:%02d' % (mm, ss)
         else:
             duration = 'n/a'
         return duration
@@ -157,7 +142,7 @@ class Music:
         discNumber = self.music.get('Disc Number')
         discCount = self.music.get('Disc Count')
         if discNumber and discCount:
-            disc = '%d/%d' % (discNumber,discCount)
+            disc = '%d/%d' % (discNumber, discCount)
         else:
             disc = 'n/a'
         return disc
@@ -167,7 +152,7 @@ class Music:
         trackNumber = self.music.get('Track Number')
         trackCount = self.music.get('Track Count')
         if trackNumber and trackCount:
-            track = '%d/%d' % (trackNumber,trackCount)
+            track = '%d/%d' % (trackNumber, trackCount)
         else:
             track = 'n/a'
         return track
@@ -176,7 +161,8 @@ class Music:
     def year(self):
         year = self.music.get('Year')
         if year:
-            if year == 9999: year = 'n/a'
+            if year == 9999:
+                year = 'n/a'
         else:
             year = 'n/a'
         return year
@@ -195,20 +181,20 @@ class Converter:
         if not xbmcvfs.exists(library_path):
             Const.notify(30103)
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(100)') # select 1st category
-            xbmc.executebuiltin('SetFocus(200)') # select 1st control
+            xbmc.executebuiltin('SetFocus(100)')  # select 1st category
+            xbmc.executebuiltin('SetFocus(200)')  # select 1st control
             sys.exit()
         # iTunes Music Libraryを所定のフォルダへコピー
         try:
             xbmcvfs.copy(library_path, Const.LIBRARY_PATH)
-        except:
+        except Exception:
             Const.notify(30105)
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(100)') # select 1st category
-            xbmc.executebuiltin('SetFocus(200)') # select 1st control
+            xbmc.executebuiltin('SetFocus(100)')  # select 1st category
+            xbmc.executebuiltin('SetFocus(200)')  # select 1st control
             sys.exit()
         # m3uのパスをチェック
-        m3u_path = xbmc.translatePath('special://profile/playlists/music/')
+        m3u_path = xbmcvfs.translatePath('special://profile/playlists/music/')
         if os.path.isdir(m3u_path):
             Const.cleanup(m3u_path)
         else:
@@ -223,8 +209,8 @@ class Converter:
             else:
                 Const.notify(30104)
                 xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-                xbmc.executebuiltin('SetFocus(101)') # select 2nd category
-                xbmc.executebuiltin('SetFocus(201)') # select 2nd control
+                xbmc.executebuiltin('SetFocus(101)')  # select 2nd category
+                xbmc.executebuiltin('SetFocus(201)')  # select 2nd control
                 sys.exit()
         self.html_path = html_path
         # ファイルパス変換
@@ -248,13 +234,15 @@ class Converter:
 
     def setup_path(self, plist, fileType=None):
         # skip some top level playlists
-        if plist.get('Master'): return None
-        if plist.get('Distinguished Kind'): return None
+        if plist.get('Master'):
+            return None
+        if plist.get('Distinguished Kind'):
+            return None
         # append node to tree
         item = {
             'sid': plist.get('Playlist Persistent ID'),
             'pid': plist.get('Parent Persistent ID'),
-            'name': Const.normalize(plist['Name'].replace('/', ' - '))
+            'name': plist['Name'].replace('/', ' - ')
         }
         tree = self.tree
         if fileType is None:
@@ -278,7 +266,8 @@ class Converter:
     def write_m3u(self, p):
         # このプレイリストのファイルパス
         filepath = self.setup_path(p, fileType='m3u')
-        if filepath is None: return
+        if filepath is None:
+            return
         # 書き込み先のファイルを開く
         with open(filepath, 'w') as f:
             # m3uヘッダを書き込む
@@ -292,22 +281,23 @@ class Converter:
                     location = music.location(self.old_path, self.new_path)
                     if location:
                         f.write('#EXTINF:{totalTime},{title}\n'.format(
-                            totalTime=int(music.totalTime/1000),
+                            totalTime=int(music.totalTime / 1000),
                             title=music.title))
                         f.write('{location}\n'.format(
                             location=location))
-                except:
+                except Exception:
                     Const.log('parse failed in Track ID %s' % t['Track ID'])
 
     def write_html(self, p):
         # このプレイリストのファイルパス
         filepath = self.setup_path(p, fileType='html')
-        if filepath is None: return
+        if filepath is None:
+            return
         # 書き込み先のファイルを開く
         with open(filepath, 'w') as f:
             # htmlヘッダを書き込む
             f.write(self.template['header'].format(
-                title=Const.normalize(p['Name'])))
+                title=p['Name']))
             # プレイリストの全てのトラックについて
             for t in p['Playlist Items']:
                 try:
@@ -324,7 +314,7 @@ class Converter:
                         track=music.track,
                         disc=music.disc,
                         dateAdded=music.dateAdded))
-                except:
+                except Exception:
                     Const.log('parse failed in Track ID %s' % t['Track ID'])
             # htmlフッタを書き込む
             f.write(self.template['footer'])
@@ -364,9 +354,9 @@ class Converter:
         self.root = self.html_path
         # テンプレートを読み込む
         self.template = {}
-        for section in ('header','footer','description','index'):
-            with open(os.path.join(Const.DATA_PATH, section),'r') as f:
-                self.template[section]  = f.read()
+        for section in ('header', 'footer', 'description', 'index'):
+            with open(os.path.join(Const.DATA_PATH, section), 'r') as f:
+                self.template[section] = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
             # ディレクトリを作成
@@ -383,22 +373,23 @@ class Converter:
 
     def convert(self):
         # 開始通知
-        xbmc.executebuiltin('XBMC.Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
+        xbmc.executebuiltin('Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
         # load playlist
         self.playlist = self.loadplist(Const.LIBRARY_PATH)
         # generate m3u playlists
         self.convert_to_m3u()
         # generate html playlists
-        if Const.GET('create_html') == 'true': self.convert_to_html()
+        if Const.GET('create_html') == 'true':
+            self.convert_to_html()
         # 完了通知
-        xbmc.executebuiltin('XBMC.Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
+        xbmc.executebuiltin('Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
 
 
-if __name__  == '__main__':
-    args = urlparse.parse_qs(sys.argv[2][1:])
+if __name__ == '__main__':
+    args = parse_qs(sys.argv[2][1:])
     action = args.get('action')
     if action is None:
         if xbmcgui.Dialog().yesno(Const.ADDON_NAME, Const.STR(30202)):
-            xbmc.executebuiltin('XBMC.RunPlugin(plugin://%s/?action=convert)' % Const.ADDON_ID)
+            xbmc.executebuiltin('RunPlugin(plugin://%s/?action=convert)' % Const.ADDON_ID)
     else:
         Converter().convert()

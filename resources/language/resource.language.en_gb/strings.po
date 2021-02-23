@@ -1,0 +1,66 @@
+# Kodi Media Center language file
+# Addon Name: iTunes Playlist Converter
+# Addon id: plugin.audio.itunesconverter
+# Addon Provider: kodiful
+msgid ""
+msgstr ""
+"Project-Id-Version: Kodi Addons\n"
+"Report-Msgid-Bugs-To: https://forum.kodi.tv/\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Kodi Translation Team\n"
+"Language-Team: Team-Kodi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_GB\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#30000"
+msgid "General"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Path to Library.xml"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Translate file paths"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Old path to replace"
+msgstr ""
+
+msgctxt "#30004"
+msgid "New path"
+msgstr ""
+
+msgctxt "#30100"
+msgid "HTML"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Create HTML playlist"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Path to HTML playlist directory"
+msgstr ""
+
+msgctxt "#30103"
+msgid "Set path to Library.xml"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Set path to HTML playlist directory"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Can't retrieve iTunes Music Library"
+msgstr ""
+
+msgctxt "#30202"
+msgid "Do you convert iTunes library to playlists? It may take several minutes."
+msgstr ""
+
