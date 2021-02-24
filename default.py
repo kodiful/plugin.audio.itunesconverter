@@ -12,18 +12,19 @@
 # old_path = 'file:///'
 # new_path    = '/'
 
-import xbmc
-import xbmcaddon
-import xbmcplugin
-import xbmcgui
-import xbmcvfs
-
 import sys
 import os
 import re
 import base64
 import datetime
 import inspect
+import unicodedata
+
+import xbmc
+import xbmcaddon
+import xbmcplugin
+import xbmcgui
+import xbmcvfs
 
 from urllib.parse import parse_qs
 from urllib.parse import unquote
@@ -74,8 +75,7 @@ class Const:
         xbmc.log(str('%s: %s(%d): %s: %s') % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, str(' ').join(m)), xbmc.LOGINFO)
 
     @staticmethod
-    def notify(id):
-        message = Const.STR(id)
+    def notify(message):
         xbmc.executebuiltin('Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
 
     @staticmethod
@@ -87,11 +87,19 @@ class Const:
                 os.rmdir(os.path.join(root, name))
 
 
+def normalize(func):
+    def wrapper(*args, **kwargs):
+        text = func(*args, **kwargs)
+        return text and unicodedata.normalize('NFC', text)
+    return wrapper
+
+
 class Music:
 
     def __init__(self, music):
         self.music = music
 
+    @normalize
     def location(self, old_path, new_path):
         location = self.music.get('Location')
         # write file locations except m4p
@@ -106,14 +114,17 @@ class Music:
         return location
 
     @property
+    @normalize
     def title(self):
         return self.music.get('Name', 'n/a')
 
     @property
+    @normalize
     def artist(self):
         return self.music.get('Artist', 'n/a')
 
     @property
+    @normalize
     def album(self):
         return self.music.get('Album', 'n/a')
 
@@ -125,9 +136,9 @@ class Music:
     def duration(self):
         duration = self.music.get('Total Time')
         if duration:
-            duration /= 1000
-            hh = duration / 3600
-            mm = (duration - hh * 3600) / 60
+            duration //= 1000
+            hh = duration // 3600
+            mm = (duration - hh * 3600) // 60
             ss = duration % 60
             if hh > 0:
                 duration = '%d:%02d:%02d' % (hh, mm, ss)
@@ -179,7 +190,7 @@ class Converter:
         library_path = Const.GET('library_path')
         # iTunes Music Libraryの有無をチェック
         if not xbmcvfs.exists(library_path):
-            Const.notify(30103)
+            Const.notify(STR(30103))
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
             xbmc.executebuiltin('SetFocus(100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(200)')  # select 1st control
@@ -188,7 +199,7 @@ class Converter:
         try:
             xbmcvfs.copy(library_path, Const.LIBRARY_PATH)
         except Exception:
-            Const.notify(30105)
+            Const.notify(STR(30105))
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
             xbmc.executebuiltin('SetFocus(100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(200)')  # select 1st control
@@ -207,7 +218,7 @@ class Converter:
             if os.path.isdir(html_path):
                 Const.cleanup(html_path)
             else:
-                Const.notify(30104)
+                Const.notify(STR(30104))
                 xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
                 xbmc.executebuiltin('SetFocus(101)')  # select 2nd category
                 xbmc.executebuiltin('SetFocus(201)')  # select 2nd control
