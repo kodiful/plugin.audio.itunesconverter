@@ -2,15 +2,16 @@
 
 # for Windows
 # old_path = 'file://localhost/'
-# new_path    = ''
+# new_path = ''
 
 # for Windows(Bootcamp)
 # old_path = 'file://localhost/'
-# new_path    = 'E:/'
+# new_path = 'E:/'
 
 # for MacOS
 # old_path = 'file:///'
-# new_path    = '/'
+# new_path = '/'
+
 
 import sys
 import os
@@ -22,13 +23,12 @@ import unicodedata
 
 import xbmc
 import xbmcaddon
-import xbmcplugin
 import xbmcgui
 import xbmcvfs
 
 from urllib.parse import parse_qs
 from urllib.parse import unquote
-from xml.etree.ElementTree import *
+from xml.etree.ElementTree import iterparse
 
 
 class Const:
@@ -57,7 +57,7 @@ class Const:
         'key': lambda x: x.text or '',
         # simple types
         'string': lambda x: x.text or '',
-        'data': lambda x: base64.decodestring(x.text.encode()),
+        'data': lambda x: base64.decodebytes(x.text.encode()),
         'date': lambda x: datetime.datetime(*map(int, re.findall(r'\d+', x.text))),
         'true': lambda x: True,
         'false': lambda x: False,
@@ -65,28 +65,28 @@ class Const:
         'integer': lambda x: int(x.text),
     }
 
-    # ユーティリティ
-    @staticmethod
-    def log(*messages):
-        m = []
-        for message in messages:
-            m.append(str(message))
-        frame = inspect.currentframe().f_back
-        xbmc.log(str('%s: %s(%d): %s: %s') % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, str(' ').join(m)), xbmc.LOGINFO)
 
-    @staticmethod
-    def notify(message):
-        xbmc.executebuiltin('Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
-
-    @staticmethod
-    def cleanup(dir):
-        for root, dirs, files in os.walk(dir, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
+# ログ出力
+def log(*messages):
+    frame = inspect.currentframe().f_back
+    xbmc.log('%s: %s(%d): %s: %s' % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, ' '.join(messages)), xbmc.LOGINFO)
 
 
+# ポップアップ通知
+def notify(message):
+    xbmc.executebuiltin('Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
+
+
+# ディレクトリ消去
+def cleanup(dir):
+    for root, dirs, files in os.walk(dir, topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+        for name in dirs:
+            os.rmdir(os.path.join(root, name))
+
+
+# ユニコード正規化デコレータ
 def normalize(func):
     def wrapper(*args, **kwargs):
         text = func(*args, **kwargs)
@@ -190,7 +190,7 @@ class Converter:
         library_path = Const.GET('library_path')
         # iTunes Music Libraryの有無をチェック
         if not xbmcvfs.exists(library_path):
-            Const.notify(STR(30103))
+            notify(Const.STR(30103))
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
             xbmc.executebuiltin('SetFocus(100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(200)')  # select 1st control
@@ -199,7 +199,7 @@ class Converter:
         try:
             xbmcvfs.copy(library_path, Const.LIBRARY_PATH)
         except Exception:
-            Const.notify(STR(30105))
+            notify(Const.STR(30105))
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
             xbmc.executebuiltin('SetFocus(100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(200)')  # select 1st control
@@ -207,7 +207,7 @@ class Converter:
         # m3uのパスをチェック
         m3u_path = xbmcvfs.translatePath('special://profile/playlists/music/')
         if os.path.isdir(m3u_path):
-            Const.cleanup(m3u_path)
+            cleanup(m3u_path)
         else:
             os.makedirs(m3u_path)
         self.m3u_path = m3u_path
@@ -216,9 +216,9 @@ class Converter:
         if Const.GET('create_html') == 'true':
             html_path = Const.GET('html_path')
             if os.path.isdir(html_path):
-                Const.cleanup(html_path)
+                cleanup(html_path)
             else:
-                Const.notify(STR(30104))
+                notify(Const.STR(30104))
                 xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
                 xbmc.executebuiltin('SetFocus(101)')  # select 2nd category
                 xbmc.executebuiltin('SetFocus(201)')  # select 2nd control
@@ -292,12 +292,12 @@ class Converter:
                     location = music.location(self.old_path, self.new_path)
                     if location:
                         f.write('#EXTINF:{totalTime},{title}\n'.format(
-                            totalTime=int(music.totalTime / 1000),
+                            totalTime=music.totalTime // 1000,
                             title=music.title))
                         f.write('{location}\n'.format(
                             location=location))
                 except Exception:
-                    Const.log('parse failed in Track ID %s' % t['Track ID'])
+                    log('parse failed in Track ID %s' % t['Track ID'])
 
     def write_html(self, p):
         # このプレイリストのファイルパス
@@ -326,7 +326,7 @@ class Converter:
                         disc=music.disc,
                         dateAdded=music.dateAdded))
                 except Exception:
-                    Const.log('parse failed in Track ID %s' % t['Track ID'])
+                    log('parse failed in Track ID %s' % t['Track ID'])
             # htmlフッタを書き込む
             f.write(self.template['footer'])
 
