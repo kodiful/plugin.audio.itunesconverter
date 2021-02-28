@@ -200,17 +200,6 @@ class Converter:
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
             xbmc.executebuiltin('SetFocus(-100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(-80)')  # select 1st control
-
-            xbmc.sleep(5000)
-            wid = xbmcgui.getCurrentWindowId()
-            win = xbmcgui.Window(wid)
-            cid = win.getFocusId()
-            log(wid, cid)
-            wid = xbmcgui.getCurrentWindowDialogId()
-            win = xbmcgui.Window(wid)
-            cid = win.getFocusId()
-            log(wid, cid)
-
             sys.exit()
         # iTunes Music Libraryを所定のフォルダへコピー
         try:
