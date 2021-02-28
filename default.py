@@ -69,7 +69,13 @@ class Const:
 # ログ出力
 def log(*messages):
     frame = inspect.currentframe().f_back
-    xbmc.log('%s: %s(%d): %s: %s' % (Const.ADDON_ID, os.path.basename(frame.f_code.co_filename), frame.f_lineno, frame.f_code.co_name, ' '.join(messages)), xbmc.LOGINFO)
+    xbmc.log('%s: %s(%d): %s: %s' % (
+        Const.ADDON_ID,
+        os.path.basename(frame.f_code.co_filename),
+        frame.f_lineno,
+        frame.f_code.co_name,
+        ' '.join(map(lambda x: str(x), messages))
+    ), xbmc.LOGINFO)
 
 
 # ポップアップ通知
@@ -192,8 +198,19 @@ class Converter:
         if not xbmcvfs.exists(library_path):
             notify(Const.STR(30103))
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(100)')  # select 1st category
-            xbmc.executebuiltin('SetFocus(200)')  # select 1st control
+            xbmc.executebuiltin('SetFocus(-100)')  # select 1st category
+            xbmc.executebuiltin('SetFocus(-80)')  # select 1st control
+
+            xbmc.sleep(5000)
+            wid = xbmcgui.getCurrentWindowId()
+            win = xbmcgui.Window(wid)
+            cid = win.getFocusId()
+            log(wid, cid)
+            wid = xbmcgui.getCurrentWindowDialogId()
+            win = xbmcgui.Window(wid)
+            cid = win.getFocusId()
+            log(wid, cid)
+
             sys.exit()
         # iTunes Music Libraryを所定のフォルダへコピー
         try:
@@ -201,8 +218,8 @@ class Converter:
         except Exception:
             notify(Const.STR(30105))
             xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-            xbmc.executebuiltin('SetFocus(100)')  # select 1st category
-            xbmc.executebuiltin('SetFocus(200)')  # select 1st control
+            xbmc.executebuiltin('SetFocus(-100)')  # select 1st category
+            xbmc.executebuiltin('SetFocus(-80)')  # select 1st control
             sys.exit()
         # m3uのパスをチェック
         m3u_path = xbmcvfs.translatePath('special://profile/playlists/music/')
@@ -220,8 +237,8 @@ class Converter:
             else:
                 notify(Const.STR(30104))
                 xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
-                xbmc.executebuiltin('SetFocus(101)')  # select 2nd category
-                xbmc.executebuiltin('SetFocus(201)')  # select 2nd control
+                xbmc.executebuiltin('SetFocus(-99)')  # select 2nd category
+                xbmc.executebuiltin('SetFocus(-79)')  # select 2nd control
                 sys.exit()
         self.html_path = html_path
         # ファイルパス変換
