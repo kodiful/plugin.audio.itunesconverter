@@ -286,7 +286,7 @@ class Converter:
         if filepath is None:
             return
         # 書き込み先のファイルを開く
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
             # m3uヘッダを書き込む
             f.write('#EXTM3U\n')
             # プレイリストの全てのトラックについて
@@ -311,7 +311,7 @@ class Converter:
         if filepath is None:
             return
         # 書き込み先のファイルを開く
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
             # htmlヘッダを書き込む
             f.write(self.template['header'].format(
                 title=p['Name']))
@@ -339,7 +339,7 @@ class Converter:
     def write_index(self, root, dirname):
         dirpath = os.path.join(root, dirname)
         filepath = os.path.join(dirpath, 'index.html')
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
             # htmlヘッダを書き込む
             f.write(self.template['header'].format(
                 title=dirname if dirname else 'iTunes'))
