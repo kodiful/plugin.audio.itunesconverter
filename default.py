@@ -372,7 +372,7 @@ class Converter:
         # テンプレートを読み込む
         self.template = {}
         for section in ('header', 'footer', 'description', 'index'):
-            with open(os.path.join(Const.DATA_PATH, section), 'r') as f:
+            with open(os.path.join(Const.DATA_PATH, section), 'r', encoding='utf-8') as f:
                 self.template[section] = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
