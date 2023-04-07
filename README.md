@@ -1,6 +1,6 @@
 ## Kodiアドオン：iTunesプレイリストコンバータ
 
-iTunesプレイリストコンバータは、iTunesが出力するライブラリを、Kodiのプレイリストファイル（m3uファイル）に変換する機能、および、HTMLファイル（htmlファイル、サンプルは[こちら](sample/playlist.html)）に変換する機能を提供します。
+iTunesプレイリストコンバータは、iTunesが出力するライブラリを、Kodiのプレイリストファイル（m3uファイル）に変換する機能、および、HTMLファイル（htmlファイル、サンプルは[こちら](sample/playlist.html)）に変換する機能を提供します。[itunestom3u](https://code.google.com/p/itunestom3u/)を参考にしました。
 
 アドオン設定画面の「一般設定」「HTML変換設定」で設定を行った後、アドオンを起動すると、一般設定、HTML変換設定にしたがって変換を開始します。
 変換はバックグラウンドで実行され、実行が完了すると画面に通知されます。処理対象が大量にある場合は、変換に数分かかることがあります。
@@ -12,7 +12,7 @@ iTunesプレイリストコンバータは、iTunesが出力するライブラ�
 
 ### 一般設定
 
-![アドオン設定画面（一般設定）](wiki/img/settings_m3u.png)
+![アドオン設定画面（一般設定）](https://user-images.githubusercontent.com/12268536/230531138-b36f9353-6a8d-46ab-bc54-49ee69266e7e.png)
 
 #### ライブラリ.xmlへのパス
 
@@ -41,7 +41,7 @@ Kodiのプレイリストファイル（m3uファイル）に出力するコン�
 
 ### HTML変換設定
 
-![アドオン設定画面（HTML変換設定）](wiki/img/settings_html.png)
+![アドオン設定画面（HTML変換設定）](https://user-images.githubusercontent.com/12268536/230531305-10e9bd8e-d66f-40fd-8604-3be0bd37c597.png)
 
 #### プレイリストをHTMLに変換する
 
