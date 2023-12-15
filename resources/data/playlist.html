@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>iTunes Playlist</title>
+<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+<style>
+  .json-size {
+    display: none;
+  }
+  .json-container .json-value.json-number {
+    color: #444;
+  }
+  .json-container .json-value.json-string {
+    color: #444;
+  }
+  b {
+    font-weight: normal;
+  }
+</style>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/gh/pgrabovets/json-view@master/dist/jsonview.js"></script>
+<script type="text/javascript">
+var playlist = %s
+</script>
+</head>
+<body>
+<div class="root"></div>
+<script type="text/javascript">
+var tree = jsonview.renderJSON(playlist, document.querySelector('.root'));
+jsonview.toggleNode(tree);
+document.querySelector('.json-key').innerHTML = 'iTunes Playlist';
+</script>
+</body>
+</html>

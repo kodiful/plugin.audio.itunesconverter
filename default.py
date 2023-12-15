@@ -20,6 +20,7 @@ import base64
 import datetime
 import inspect
 import unicodedata
+import json
 
 import xbmc
 import xbmcaddon
@@ -305,53 +306,6 @@ class Converter:
                 except Exception:
                     log('parse failed in Track ID %s' % t['Track ID'])
 
-    def write_html(self, p):
-        # このプレイリストのファイルパス
-        filepath = self.setup_path(p, fileType='html')
-        if filepath is None:
-            return
-        # 書き込み先のファイルを開く
-        with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
-            # htmlヘッダを書き込む
-            f.write(self.template['header'].format(
-                title=p['Name']))
-            # プレイリストの全てのトラックについて
-            for t in p['Playlist Items']:
-                try:
-                    trackId = t['Track ID']
-                    music = Music(self.playlist['Tracks'][str(trackId)])
-                    # 属性を書き込む
-                    f.write(self.template['description'].format(
-                        trackId=trackId,
-                        title=music.title,
-                        artist=music.artist,
-                        album=music.album,
-                        year=music.year,
-                        duration=music.duration,
-                        track=music.track,
-                        disc=music.disc,
-                        dateAdded=music.dateAdded))
-                except Exception:
-                    log('parse failed in Track ID %s' % t['Track ID'])
-            # htmlフッタを書き込む
-            f.write(self.template['footer'])
-
-    def write_index(self, root, dirname):
-        dirpath = os.path.join(root, dirname)
-        filepath = os.path.join(dirpath, 'index.html')
-        with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
-            # htmlヘッダを書き込む
-            f.write(self.template['header'].format(
-                title=dirname if dirname else 'iTunes'))
-            # ディレクトリの自分以外のファイルについて
-            for link in sorted(os.listdir(dirpath)):
-                if link != 'index.html':
-                    f.write(self.template['index'].format(
-                        link=link,
-                        name=link.replace('.html', '')))
-            # htmlフッタを書き込む
-            f.write(self.template['footer'])
-
     def convert_to_m3u(self):
         # 作業変数を初期化
         self.tree = []
@@ -368,25 +322,47 @@ class Converter:
     def convert_to_html(self):
         # 作業変数を初期化
         self.tree = []
+        top = {}
+        buf = {}
         self.root = self.html_path
         # テンプレートを読み込む
-        self.template = {}
-        for section in ('header', 'footer', 'description', 'index'):
-            with open(os.path.join(Const.DATA_PATH, section), 'r', encoding='utf-8') as f:
-                self.template[section] = f.read()
+        with open(os.path.join(Const.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
+            self.template = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
+            sid = p.get('Playlist Persistent ID')
+            pid = p.get('Parent Persistent ID')
+            name = p['Name'].replace('/', ' - ')
             # ディレクトリを作成
             if 'Folder' in p:
-                os.makedirs(self.setup_path(p))
+                if buf.get(sid) is None:
+                    node = buf[sid] = {}
+                    if pid is None:
+                        top['<b name="%s">%s</b>' % (str(sid), name)] = node
+                    else:
+                        buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = node
             # ファイルを作成
             elif 'Playlist Items' in p:
-                self.write_html(p)
-        # 各ディレクトリにインデクスファイルを作成
-        for root, dirs, files in os.walk(self.html_path, topdown=False):
-            for name in dirs:
-                self.write_index(root, name)
-            self.write_index(root, '')
+                if buf.get(pid) is not None:
+                    node = buf[sid] = {}
+                    buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = node
+                    for item in p['Playlist Items']:
+                        try:
+                            id = item['Track ID']
+                            music = Music(self.playlist['Tracks'][str(id)])
+                            node['<b name="%s">%s</b>' % (str(id), music.title)] = {
+                                'Artist': music.artist,
+                                'Album': music.album,
+                                'Year': music.year,
+                                'Duration': music.duration,
+                                'Track': music.track,
+                                'Disc': music.disc,
+                                'Added': music.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
+                            }
+                        except Exception as err:
+                            log('parse failed in Track ID %s: %s' % (id, err))
+        with open(os.path.join(self.html_path, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(self.template % json.dumps(top))
 
     def convert(self):
         # 開始通知
