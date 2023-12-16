@@ -61,6 +61,6 @@ msgid "Can't retrieve iTunes Music Library"
 msgstr "ライブラリ.xmlが取得できません"
 
 msgctxt "#30202"
-msgid "Do you convert iTunes library to playlists? It may take several minutes."
+msgid "Do you convert iTunes library to playlists?"
 msgstr "iTunesライブラリをプレイリストに変換しますか？"
 
