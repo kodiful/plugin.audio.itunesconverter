@@ -21,6 +21,9 @@
   .json-container .json-value.json-string {{
     color: #444;
   }}
+  .json-container .fa-caret-right {{
+    border-left-color: silver !important;
+  }}
   a {{
     text-decoration: none !important;
   }}
@@ -41,6 +44,15 @@ var data = {data};
 var tree = jsonview.renderJSON(data, document.querySelector('.root'));
 jsonview.toggleNode(tree);
 document.querySelector('.crumbs').innerHTML = crumbs.join('&nbsp;&nbsp;&gt;&nbsp;&nbsp;') || 'iTunes Playlists | Tree'
+document.querySelectorAll('.caret-icon').forEach(el => {{
+  el.addEventListener('click', ev => {{
+    var el = ev.srcElement
+    while (el.className != 'caret-icon') el = el.parentNode;
+    while (el.className != 'json-key') el = el.nextSibling;
+    el.firstChild.click();
+    ev.stopImmediatePropagation();
+  }}, useCapture=true);
+}});
 </script>
 </body>
 </html>

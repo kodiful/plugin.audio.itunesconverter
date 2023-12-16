@@ -61,6 +61,6 @@ msgid "Can't retrieve iTunes Music Library"
 msgstr ""
 
 msgctxt "#30202"
-msgid "Do you convert iTunes library to playlists? It may take several minutes."
+msgid "Do you convert iTunes library to playlists?"
 msgstr ""
 

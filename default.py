@@ -220,7 +220,7 @@ class Converter:
         self.m3u_path = m3u_path
         # htmlのパスをチェック
         html_path = ''
-        if Const.GET('create_html') == 'true':
+        if Const.GET('create_html') != 'none':
             html_path = Const.GET('html_path')
             if os.path.isdir(html_path):
                 cleanup(html_path)
@@ -250,107 +250,76 @@ class Converter:
                 raise IOError('unknown plist type: %r' % elem.tag)
         return parser.root[0].text
 
-    def setup_path(self, plist, fileType=None):
-        # skip some top level playlists
-        if plist.get('Master'):
-            return None
-        if plist.get('Distinguished Kind'):
-            return None
-        # append node to tree
-        item = {
-            'sid': plist.get('Playlist Persistent ID'),
-            'pid': plist.get('Parent Persistent ID'),
-            'name': plist['Name'].replace('/', ' - ')
-        }
-        tree = self.tree
-        if fileType is None:
-            tree.append(item)
-        dirs = [item['name']]
-        f1 = item
-        while not f1['pid'] is None:
-            pid = f1['pid']
-            for f2 in tree:
-                if f2['sid'] == pid:
-                    f1 = f2
-                    dirs.insert(0, f1['name'])
-                    break
-        if fileType:
-            dirs[-1] += '.' + fileType
-        result = self.root
-        for d in dirs:
-            result = os.path.join(result, d)
-        return result
-
-    def write_m3u(self, p):
-        # このプレイリストのファイルパス
-        filepath = self.setup_path(p, fileType='m3u')
-        if filepath is None:
-            return
-        # 書き込み先のファイルを開く
-        with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
-            # m3uヘッダを書き込む
-            f.write('#EXTM3U\n')
-            # プレイリストの全てのトラックについて
-            for t in p['Playlist Items']:
-                try:
-                    trackId = t['Track ID']
-                    music = Music(self.playlist['Tracks'][str(trackId)])
-                    # 属性を書き込む
-                    location = music.location(self.old_path, self.new_path)
-                    if location:
-                        f.write('#EXTINF:{totalTime},{title}\n'.format(
-                            totalTime=music.totalTime // 1000,
-                            title=music.title))
-                        f.write('{location}\n'.format(
-                            location=location))
-                except Exception:
-                    log('parse failed in Track ID %s' % t['Track ID'])
-
     def convert_to_m3u(self):
         # 作業変数を初期化
-        self.tree = []
-        self.root = self.m3u_path
-        # 全てのプレイリストについて
-        for p in self.playlist['Playlists']:
-            # ディレクトリを作成
-            if 'Folder' in p:
-                os.makedirs(self.setup_path(p))
-            # ファイルを作成
-            elif 'Playlist Items' in p:
-                self.write_m3u(p)
-
-    def convert_to_html(self):
-        # 作業変数を初期化
-        self.tree = []
-        top = {}
         buf = {}
-        self.root = self.html_path
-        # テンプレートを読み込む
-        with open(os.path.join(Const.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
-            self.template = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
             sid = p.get('Playlist Persistent ID')
             pid = p.get('Parent Persistent ID')
             name = p['Name'].replace('/', ' - ')
-            # ディレクトリを作成
+            # フォルダ
             if 'Folder' in p:
                 if buf.get(sid) is None:
-                    node = buf[sid] = {}
                     if pid is None:
-                        top['<b name="%s">%s</b>' % (str(sid), name)] = node
+                        buf[sid] = os.path.join(self.m3u_path, name)
                     else:
-                        buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = node
-            # ファイルを作成
+                        buf[sid] = os.path.join(buf[pid], name)
+                    os.makedirs(buf[sid])
+            # アイテム
             elif 'Playlist Items' in p:
                 if buf.get(pid) is not None:
-                    node = buf[sid] = {}
-                    buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = node
+                    # m3uファイルを作成
+                    with open(os.path.join(buf[pid], '%s.m3u' % name), 'w', encoding='utf-8', errors='ignore') as f:
+                        # m3uヘッダを書き込む
+                        f.write('#EXTM3U\n')
+                        # プレイリストの全てのトラックについて
+                        for item in p['Playlist Items']:
+                            try:
+                                id = item['Track ID']
+                                music = Music(self.playlist['Tracks'][str(id)])
+                                # 属性を書き込む
+                                location = music.location(self.old_path, self.new_path)
+                                if location:
+                                    f.write('#EXTINF:{totalTime},{title}\n'.format(
+                                        totalTime=music.totalTime // 1000,
+                                        title=music.title))
+                                    f.write('{location}\n'.format(
+                                        location=location))
+                            except Exception as err:
+                                log('parse failed in Track ID %s: %s' % (id, err))
+
+    def convert_to_html(self):
+        # 作業変数を初期化
+        buf = {}
+        # テンプレートを読み込む
+        with open(os.path.join(Const.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
+            playlist = f.read()
+        # テンプレートを読み込む
+        with open(os.path.join(Const.DATA_PATH, 'index.html'), 'r', encoding='utf-8') as f:
+            index = f.read()
+        # 全てのプレイリストについて
+        for p in self.playlist['Playlists']:
+            sid = p.get('Playlist Persistent ID')
+            pid = p.get('Parent Persistent ID')
+            name = p['Name'].replace('/', ' - ')
+            # フォルダ
+            if 'Folder' in p:
+                if buf.get(sid) is None:
+                    if pid is None:
+                        buf[sid] = os.path.join(self.html_path, name)
+                    else:
+                        buf[sid] = os.path.join(buf[pid], name)
+                    os.makedirs(buf[sid])
+            # アイテム
+            elif 'Playlist Items' in p:
+                if buf.get(pid) is not None:
+                    data = {}
                     for item in p['Playlist Items']:
                         try:
                             id = item['Track ID']
                             music = Music(self.playlist['Tracks'][str(id)])
-                            node['<b name="%s">%s</b>' % (str(id), music.title)] = {
+                            data['<b name="%s">%s</b>' % (str(id), music.title)] = {
                                 'Artist': music.artist,
                                 'Album': music.album,
                                 'Year': music.year,
@@ -361,9 +330,79 @@ class Converter:
                             }
                         except Exception as err:
                             log('parse failed in Track ID %s: %s' % (id, err))
-        with open(os.path.join(self.html_path, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
-            f.write(self.template % json.dumps(top))
+                    # htmlファイルを作成
+                    with open(os.path.join(buf[pid], '%s.html' % name), 'w', encoding='utf-8', errors='ignore') as f:
+                        f.write(playlist.format(title=name,
+                                                data=json.dumps(data),
+                                                crumbs=json.dumps(self.crumbs(os.path.join(buf[pid], name), True))))
+        # インデクス
+        for root, dirs, files in os.walk(self.html_path):
+            data = {}
+            for item in sorted([x for x in dirs] + [x for x in files]):
+                data['<a href="%s">%s</a>' % (item, item.replace('.html', ''))] = {'': ''}
+            # htmlファイルを作成
+            with open(os.path.join(root, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
+                f.write(index.format(
+                    title=os.path.basename(root) or 'Top',
+                    data=json.dumps(data),
+                    crumbs=json.dumps(self.crumbs(root, False))))
 
+    def convert_to_tree(self):
+        # 作業変数を初期化
+        top = {}
+        buf = {}
+        # テンプレートを読み込む
+        with open(os.path.join(Const.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
+            playlist = f.read()
+        # 全てのプレイリストについて
+        for p in self.playlist['Playlists']:
+            sid = p.get('Playlist Persistent ID')
+            pid = p.get('Parent Persistent ID')
+            name = p['Name'].replace('/', ' - ')
+            # フォルダ
+            if 'Folder' in p:
+                if buf.get(sid) is None:
+                    if pid is None:
+                        buf[sid] = top['<b name="%s">%s</b>' % (str(sid), name)] = {}
+                    else:
+                        buf[sid] = buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = {}
+            # アイテム
+            elif 'Playlist Items' in p:
+                if buf.get(pid) is not None:
+                    buf[sid] = buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = {}
+                    for item in p['Playlist Items']:
+                        try:
+                            id = item['Track ID']
+                            music = Music(self.playlist['Tracks'][str(id)])
+                            buf[sid]['<b name="%s">%s</b>' % (str(id), music.title)] = {
+                                'Artist': music.artist,
+                                'Album': music.album,
+                                'Year': music.year,
+                                'Duration': music.duration,
+                                'Track': music.track,
+                                'Disc': music.disc,
+                                'Added': music.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
+                            }
+                        except Exception as err:
+                            log('parse failed in Track ID %s: %s' % (id, err))
+        # htmlファイルを作成
+        with open(os.path.join(self.html_path, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(playlist.format(title='Tree', data=json.dumps(top), crumbs=json.dumps([])))
+
+    def crumbs(self, path, leaf):
+        path = path.replace(self.html_path, '').strip('/')
+        if len(path) > 0:
+            items = path.split('/')
+            buf = [items.pop()]
+            if leaf:
+                buf.append('<a href="%s">%s</a>' % ('.', items.pop()))
+            for i in range(len(items)):
+                buf.append('<a href="%s">%s</a>' % ('/'.join(['..'] * (i+1)), items[-i-1]))
+            buf.append('iTunes Playlists | <a href="%s">%s</a>' % ('/'.join(['..'] * (len(items)+1)), 'Top'))
+        else:
+            buf = ['iTunes Playlists | Top']
+        return list(reversed(buf))
+    
     def convert(self):
         # 開始通知
         xbmc.executebuiltin('Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
@@ -372,8 +411,12 @@ class Converter:
         # generate m3u playlists
         self.convert_to_m3u()
         # generate html playlists
-        if Const.GET('create_html') == 'true':
+        if Const.GET('create_html') == 'none':
+            pass
+        elif Const.GET('create_html') == 'separated':
             self.convert_to_html()
+        elif Const.GET('create_html') == 'combined':
+            self.convert_to_tree()
         # 完了通知
         xbmc.executebuiltin('Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
 

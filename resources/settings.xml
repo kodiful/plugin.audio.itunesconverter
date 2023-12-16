@@ -13,7 +13,7 @@
     <setting id="music_path" type="text" subsetting="true" label="30004" default="" enable="eq(-2,true)"/>
   </category>
   <category label="30100">
-    <setting id="create_html" type="bool" label="30101"/>
-    <setting id="html_path" type="folder" label="30102" default="" enable="eq(-1,true)"/>
+    <setting label="30101" id="create_html" type="labelenum" default="none" values="none|separated|combined"/>
+    <setting id="html_path" type="folder" label="30102" default="" enable="!eq(-1,none)"/>
   </category>
 </settings>
