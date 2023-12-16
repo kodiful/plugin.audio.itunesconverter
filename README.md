@@ -55,11 +55,11 @@ Kodiのプレイリストファイル（m3uファイル）に出力するコン�
 
 ##### 設定値をseparatedとして生成されるHTMLの例
 
-![生成されるHTMLの例（separated）](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/f2dcedaf-7b0b-449a-be39-b181c768a8d1)
+![生成されるHTMLの例（separated）](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/257951fc-d430-4a1d-885a-5c1a11c1e9e8)
 
 ##### 設定値をcombinedとして生成されるHTMLの例
 
-![生成されるHTMLの例（combined）](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/66674390-05fa-4a85-a8ed-d669a8e79eba)
+![生成されるHTMLの例（combined）](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/99766c07-68f1-4711-ba77-5ec345f3ad41)
 
 #### HTMLプレイリストのディレクトリへのパス
 
