@@ -28,6 +28,10 @@
   .json-container .line {{
     white-space: nowrap;
   }}
+  .json-container .json-key:has(i) {{
+    width: 100px;
+    text-align: right;
+  }}
   .json-container .json-value.json-number {{
     color: #444;
   }}
@@ -39,6 +43,9 @@
   }}
   b {{
     font-weight: normal;
+  }}
+  i {{
+    font-style: normal;
   }}
 </style>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/pgrabovets/json-view@master/dist/jsonview.js"></script>

@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>iTunes Playlists | {title}</title>
 <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
-<!-- for playlist.html and index.html -->
 <style>
   body {{
     text-size-adjust: 100%;
@@ -29,6 +28,10 @@
   .json-container .line {{
     white-space: nowrap;
   }}
+  .json-container .json-key:has(i) {{
+    width: 100px;
+    text-align: right;
+  }}
   .json-container .json-value.json-number {{
     color: #444;
   }}
@@ -40,6 +43,9 @@
   }}
   b {{
     font-weight: normal;
+  }}
+  i {{
+    font-style: normal;
   }}
 </style>
 <!-- only for index.html -->
