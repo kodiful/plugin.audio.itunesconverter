@@ -320,13 +320,13 @@ class Converter:
                             id = item['Track ID']
                             music = Music(self.playlist['Tracks'][str(id)])
                             data['<b name="%s">%s</b>' % (str(id), music.title)] = {
-                                'Artist': music.artist,
-                                'Album': music.album,
-                                'Year': music.year,
-                                'Duration': music.duration,
-                                'Track': music.track,
-                                'Disc': music.disc,
-                                'Added': music.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
+                                '<i>Artist</i>': music.artist,
+                                '<i>Album</i>': music.album,
+                                '<i>Year</i>': music.year,
+                                '<i>Duration</i>': music.duration,
+                                '<i>Track</i>': music.track,
+                                '<i>Disc</i>': music.disc,
+                                '<i>Added</i>': music.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
                             }
                         except Exception as err:
                             log('parse failed in Track ID %s: %s' % (id, err))
