@@ -6,16 +6,27 @@
 <title>iTunes Playlists | {title}</title>
 <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
 <style>
+  body {{
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }}
   .crumbs {{
     font-family: "Open Sans";
     font-size: 12px;
     padding: 4px;
+    white-space: nowrap;
   }}
-  .json-size {{
+  .json-container {{
+    width: fit-content;
+  }}
+  .json-container .json-size {{
     display: none;
   }}
   .json-container .line:first-child {{
     display: none;
+  }}
+  .json-container .line {{
+    white-space: nowrap;
   }}
   .json-container .json-value.json-number {{
     color: #444;
@@ -24,7 +35,7 @@
     color: #444;
   }}
   a {{
-    text-decoration: none !important;
+    text-decoration: none;
   }}
   b {{
     font-weight: normal;

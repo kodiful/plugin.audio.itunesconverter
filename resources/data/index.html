@@ -5,17 +5,29 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>iTunes Playlists | {title}</title>
 <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+<!-- for playlist.html and index.html -->
 <style>
+  body {{
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }}
   .crumbs {{
     font-family: "Open Sans";
     font-size: 12px;
     padding: 4px;
+    white-space: nowrap;
   }}
-  .json-size {{
+  .json-container {{
+    width: fit-content;
+  }}
+  .json-container .json-size {{
     display: none;
   }}
   .json-container .line:first-child {{
     display: none;
+  }}
+  .json-container .line {{
+    white-space: nowrap;
   }}
   .json-container .json-value.json-number {{
     color: #444;
@@ -23,14 +35,17 @@
   .json-container .json-value.json-string {{
     color: #444;
   }}
-  .json-container .fa-caret-right {{
-    border-left-color: silver !important;
-  }}
   a {{
-    text-decoration: none !important;
+    text-decoration: none;
   }}
   b {{
     font-weight: normal;
+  }}
+</style>
+<!-- only for index.html -->
+<style>
+  .json-container .fa-caret-right {{
+    border-left-color: silver !important;
   }}
 </style>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/gh/pgrabovets/json-view@master/dist/jsonview.js"></script>
