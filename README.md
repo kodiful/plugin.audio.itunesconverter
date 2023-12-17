@@ -12,7 +12,7 @@ iTunesプレイリストコンバータは、iTunesが出力するライブラ�
 
 ### 一般設定
 
-![アドオン設定画面（一般設定）](https://user-images.githubusercontent.com/12268536/230531138-b36f9353-6a8d-46ab-bc54-49ee69266e7e.png)
+![アドオン設定画面（一般設定）](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/33836727-3065-404f-85f2-a89daf8d3e95)
 
 #### ライブラリ.xmlへのパス
 
@@ -41,12 +41,18 @@ Kodiのプレイリストファイル（m3uファイル）に出力するコン�
 
 ### HTML変換設定
 
-![アドオン設定画面（HTML変換設定）](https://user-images.githubusercontent.com/12268536/230531305-10e9bd8e-d66f-40fd-8604-3be0bd37c597.png)
+![アドオン設定画面（HTML変換設定）](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/eb2bdc25-c649-4dc3-9b62-7ed3f7477825)
 
 #### プレイリストをHTMLに変換する
 
-HTMLファイルを生成する場合は、これをチェックしてください。
+生成するHTMLのタイプに応じて設定値を選択してください。
+
+|設定値|生成するHTMLのタイプ|生成例|
+|:---|:---|:---|
+|none（デフォルト）|HTMLを生成しない||
+|separated|プレイリスト毎にHTMLを生成する|![separated](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/f2b88571-d4fb-4929-9e3d-77d770aa1184)|
+|combined|すべてをツリーとして一つのHTMLを生成する|![combined](https://github.com/kodiful/plugin.audio.itunesconverter/assets/12268536/102e77ce-7ecf-4b9a-a84b-a8c9f4d57996)|
 
 #### HTMLプレイリストのディレクトリへのパス
 
-生成されたHTMLファイルを書き込むルートディレクトリを設定してください。
+生成されたHTMLファイルを書き込むパス（separatedを選択した場合はルートディレクトリのパス）を設定してください。
