@@ -1,3 +1,5 @@
 *~
 *.pyo
 .DS_Store
+.gitignore
+kodi.log

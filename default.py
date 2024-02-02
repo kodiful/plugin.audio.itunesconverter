@@ -107,7 +107,7 @@ class Music:
         self.music = music
 
     @normalize
-    def location(self, old_path, new_path):
+    def location(self, old_path='', new_path=''):
         location = self.music.get('Location')
         # write file locations except m4p
         if location and re.search(r'\.m4p$', location) is None:
@@ -188,6 +188,24 @@ class Music:
     @property
     def dateAdded(self):
         return self.music.get('Date Added', 'n/a')
+
+    def attributes(self, id=None):
+        if Const.GET('output_link') == 'true':
+            key = '<a href="%s" target="_blank">%s</a>' % (self.location(), self.title)
+        else:
+            key = self.title
+        if id:
+            key = '%s<!--%s-->' % (key, str(id))
+        value = {
+            'Artist': self.artist,
+            'Album': self.album,
+            'Year': self.year,
+            'Duration': self.duration,
+            'Track': self.track,
+            'Disc': self.disc,
+            'Added': self.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return key, value
 
 
 class Converter:
@@ -319,15 +337,8 @@ class Converter:
                         try:
                             id = item['Track ID']
                             music = Music(self.playlist['Tracks'][str(id)])
-                            data['<b name="%s">%s</b>' % (str(id), music.title)] = {
-                                '<i>Artist</i>': music.artist,
-                                '<i>Album</i>': music.album,
-                                '<i>Year</i>': music.year,
-                                '<i>Duration</i>': music.duration,
-                                '<i>Track</i>': music.track,
-                                '<i>Disc</i>': music.disc,
-                                '<i>Added</i>': music.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
-                            }
+                            key, value = music.attributes()
+                            data[key] = value
                         except Exception as err:
                             log('parse failed in Track ID %s: %s' % (id, err))
                     # htmlファイルを作成
@@ -339,7 +350,10 @@ class Converter:
         for root, dirs, files in os.walk(self.html_path):
             data = {}
             for item in sorted([x for x in dirs] + [x for x in files]):
-                data['<a href="%s">%s</a>' % (item, item.replace('.html', ''))] = {'': ''}
+                if item.find('.html') > -1:
+                    data['<a href="%s">%s</a>' % (item, item.replace('.html', ''))] = {'': ''}
+                else:
+                    data['<a href="%s/index.html">%s</a>' % (item, item)] = {'': ''}
             # htmlファイルを作成
             with open(os.path.join(root, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
                 f.write(index.format(
@@ -363,32 +377,36 @@ class Converter:
             if 'Folder' in p:
                 if buf.get(sid) is None:
                     if pid is None:
-                        buf[sid] = top['<b name="%s">%s</b>' % (str(sid), name)] = {}
+                        buf[sid] = top['%s<!--%s-->' % (name, str(sid))] = {}
                     else:
-                        buf[sid] = buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = {}
+                        buf[sid] = buf[pid]['%s<!--%s-->' % (name, str(sid))] = {}
             # アイテム
             elif 'Playlist Items' in p:
                 if buf.get(pid) is not None:
-                    buf[sid] = buf[pid]['<b name="%s">%s</b>' % (str(sid), name)] = {}
+                    buf[sid] = buf[pid]['%s<!--%s-->' % (name, str(sid))] = {}
                     for item in p['Playlist Items']:
                         try:
                             id = item['Track ID']
                             music = Music(self.playlist['Tracks'][str(id)])
-                            buf[sid]['<b name="%s">%s</b>' % (str(id), music.title)] = {
-                                '<i>Artist</i>': music.artist,
-                                '<i>Album</i>': music.album,
-                                '<i>Year</i>': music.year,
-                                '<i>Duration</i>': music.duration,
-                                '<i>Track</i>': music.track,
-                                '<i>Disc</i>': music.disc,
-                                '<i>Added</i>': music.dateAdded.strftime('%Y-%m-%d %H:%M:%S')
-                            }
+                            key, value = music.attributes(str(id))
+                            buf[sid][key] = value
                         except Exception as err:
                             log('parse failed in Track ID %s: %s' % (id, err))
         # htmlファイルを作成
         with open(os.path.join(self.html_path, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
-            f.write(playlist.format(title='Tree', data=json.dumps(top), crumbs=json.dumps([])))
+            f.write(playlist.format(title='Tree', data=json.dumps(self.sort(top)), crumbs=json.dumps([])))
 
+    def sort(self, node):
+        if type(node) == dict:
+            if node.get('Added') is None:
+                buf = {}
+                for key in sorted(node.keys()):
+                    buf[key] = node[key]
+                node = buf
+            for key in node.keys():
+                node[key] = self.sort(node[key])
+        return node
+    
     def crumbs(self, path, leaf):
         path = path.replace(self.html_path, '').strip('/')
         if len(path) > 0:

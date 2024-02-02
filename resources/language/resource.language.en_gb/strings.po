@@ -60,6 +60,10 @@ msgctxt "#30105"
 msgid "Can't retrieve iTunes Music Library"
 msgstr ""
 
+msgctxt "#30106"
+msgid "Output file links to HTML"
+msgstr ""
+
 msgctxt "#30202"
 msgid "Do you convert iTunes library to playlists?"
 msgstr ""
