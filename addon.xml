@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="plugin.audio.itunesconverter"
        name="iTunes Playlist Converter"
-       version="2.2"
+       version="2.2.1"
        provider-name="kodiful">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
@@ -10,6 +10,9 @@
     <provides>audio</provides>
   </extension>
   <extension point="xbmc.addon.metadata">
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
     <platform>all</platform>
     <summary lang="en">iTunes Playlist Converter</summary>
     <summary lang="ja">iTunesプレイリストコンバータ</summary>
@@ -18,5 +21,6 @@
     <disclaimer lang="en">Works on Windows &amp; macOS</disclaimer>
     <disclaimer lang="ja">WindowsとmacOSで動作</disclaimer>
     <website>http://kodiful.com/</website>
+    <source>https://github.com/kodiful/plugin.audio.itunesconverter</source>
   </extension>
 </addon>

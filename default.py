@@ -19,8 +19,10 @@ import re
 import base64
 import datetime
 import inspect
+import traceback
 import unicodedata
 import json
+import shutil
 
 import xbmc
 import xbmcaddon
@@ -32,7 +34,7 @@ from urllib.parse import unquote
 from xml.etree.ElementTree import iterparse
 
 
-class Const:
+class Common:
 
     # アドオン
     ADDON = xbmcaddon.Addon()
@@ -66,31 +68,53 @@ class Const:
         'integer': lambda x: int(x.text),
     }
 
+    # 通知
+    @staticmethod
+    def notify(*messages, **options):
+        # アドオン
+        addon = xbmcaddon.Addon()
+        name = addon.getAddonInfo('name')
+        # デフォルト設定
+        if options.get('error'):
+            image = 'DefaultIconError.png'
+            level = xbmc.LOGERROR
+        else:
+            image = 'DefaultIconInfo.png'
+            level = xbmc.LOGINFO
+        # ポップアップする時間
+        duration = options.get('duration', 10000)
+        # ポップアップアイコン
+        image = options.get('image', image)
+        # メッセージ
+        messages = ' '.join(map(lambda x: str(x), messages))
+        # ポップアップ通知
+        xbmc.executebuiltin(f'Notification("{name}","{messages}",{duration},"{image}")')
+        # ログ出力
+        Common.log(messages, level=level)
 
-# ログ出力
-def log(*messages):
-    frame = inspect.currentframe().f_back
-    xbmc.log('%s: %s(%d): %s: %s' % (
-        Const.ADDON_ID,
-        os.path.basename(frame.f_code.co_filename),
-        frame.f_lineno,
-        frame.f_code.co_name,
-        ' '.join(map(lambda x: str(x), messages))
-    ), xbmc.LOGINFO)
-
-
-# ポップアップ通知
-def notify(message):
-    xbmc.executebuiltin('Notification("%s","%s",10000,"DefaultIconError.png")' % (Const.ADDON_NAME, message))
-
-
-# ディレクトリ消去
-def cleanup(dir):
-    for root, dirs, files in os.walk(dir, topdown=False):
-        for name in files:
-            os.remove(os.path.join(root, name))
-        for name in dirs:
-            os.rmdir(os.path.join(root, name))
+    # ログ
+    @staticmethod
+    def log(*messages, **options):
+        # アドオン
+        addon = xbmcaddon.Addon()
+        # ログレベル、メッセージを設定
+        if isinstance(messages[0], Exception):
+            level = options.get('level', xbmc.LOGERROR)
+            message = '\n'.join(list(map(lambda x: x.strip(), traceback.TracebackException.from_exception(messages[0]).format())))
+            if len(messages[1:]) > 0:
+                message += ': ' + ' '.join(map(lambda x: str(x), messages[1:]))
+        else:
+            level = options.get('level', xbmc.LOGINFO)
+            frame = inspect.currentframe().f_back
+            filename = os.path.basename(frame.f_code.co_filename)
+            lineno = frame.f_lineno
+            name = frame.f_code.co_name
+            id = addon.getAddonInfo('id')
+            message = f'Addon "{id}", File "{filename}", line {lineno}, in {name}'
+            if len(messages) > 0:
+                message += ': ' + ' '.join(map(lambda x: str(x), messages))
+        # ログ出力
+        xbmc.log(message, level)
 
 
 # ユニコード正規化デコレータ
@@ -190,7 +214,7 @@ class Music:
         return self.music.get('Date Added', 'n/a')
 
     def attributes(self, id=None):
-        if Const.GET('output_link') == 'true':
+        if Common.GET('output_link') == 'true':
             key = '<a href="%s" target="_blank">%s</a>' % (self.location(), self.title)
         else:
             key = self.title
@@ -208,58 +232,58 @@ class Music:
         return key, value
 
 
-class Converter:
+class Converter(Common):
 
     def __init__(self):
         # iTunes Music Libraryへのパス
-        library_path = Const.GET('library_path')
+        library_path = self.GET('library_path')
         # iTunes Music Libraryの有無をチェック
         if not xbmcvfs.exists(library_path):
-            notify(Const.STR(30103))
-            xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+            self.notify(self.STR(30103))
+            xbmc.executebuiltin('Addon.OpenSettings(%s)' % self.ADDON_ID)
             xbmc.executebuiltin('SetFocus(-100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(-80)')  # select 1st control
             sys.exit()
         # iTunes Music Libraryを所定のフォルダへコピー
         try:
-            xbmcvfs.copy(library_path, Const.LIBRARY_PATH)
+            xbmcvfs.copy(library_path, self.LIBRARY_PATH)
         except Exception:
-            notify(Const.STR(30105))
-            xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+            self.notify(self.STR(30105))
+            xbmc.executebuiltin('Addon.OpenSettings(%s)' % self.ADDON_ID)
             xbmc.executebuiltin('SetFocus(-100)')  # select 1st category
             xbmc.executebuiltin('SetFocus(-80)')  # select 1st control
             sys.exit()
         # m3uのパスをチェック
         m3u_path = xbmcvfs.translatePath('special://profile/playlists/music/')
         if os.path.isdir(m3u_path):
-            cleanup(m3u_path)
-        else:
-            os.makedirs(m3u_path)
+            shutil.rmtree(m3u_path)
+        os.makedirs(m3u_path)
         self.m3u_path = m3u_path
         # htmlのパスをチェック
         html_path = ''
-        if Const.GET('create_html') != 'none':
-            html_path = Const.GET('html_path')
+        if self.GET('create_html') != 'none':
+            html_path = self.GET('html_path')
             if os.path.isdir(html_path):
-                cleanup(html_path)
+                shutil.rmtree(html_path)
+                os.makedirs(html_path)
             else:
-                notify(Const.STR(30104))
-                xbmc.executebuiltin('Addon.OpenSettings(%s)' % Const.ADDON_ID)
+                self.notify(self.STR(30104))
+                xbmc.executebuiltin('Addon.OpenSettings(%s)' % self.ADDON_ID)
                 xbmc.executebuiltin('SetFocus(-99)')  # select 2nd category
                 xbmc.executebuiltin('SetFocus(-79)')  # select 2nd control
                 sys.exit()
         self.html_path = html_path
         # ファイルパス変換
-        if Const.GET('translate_path') == 'true':
-            self.new_path = Const.GET('music_path')
-            self.old_path = Const.GET('oldmusic_path')
+        if self.GET('translate_path') == 'true':
+            self.new_path = self.GET('music_path')
+            self.old_path = self.GET('oldmusic_path')
         else:
             self.new_path = self.old_path = ''
 
     def loadplist(self, file):
         parser = iterparse(file)
         for action, elem in parser:
-            unmarshal = Const.UNMARSHALLERS.get(elem.tag)
+            unmarshal = self.UNMARSHALLERS.get(elem.tag)
             if unmarshal:
                 data = unmarshal(elem)
                 elem.clear()
@@ -305,16 +329,16 @@ class Converter:
                                     f.write('{location}\n'.format(
                                         location=location))
                             except Exception as err:
-                                log('parse failed in Track ID %s: %s' % (id, err))
+                                self.log('parse failed in Track ID %s: %s' % (id, err))
 
     def convert_to_html(self):
         # 作業変数を初期化
         buf = {}
         # テンプレートを読み込む
-        with open(os.path.join(Const.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(self.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
             playlist = f.read()
         # テンプレートを読み込む
-        with open(os.path.join(Const.DATA_PATH, 'index.html'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(self.DATA_PATH, 'index.html'), 'r', encoding='utf-8') as f:
             index = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
@@ -340,7 +364,7 @@ class Converter:
                             key, value = music.attributes()
                             data[key] = value
                         except Exception as err:
-                            log('parse failed in Track ID %s: %s' % (id, err))
+                            self.log('parse failed in Track ID %s: %s' % (id, err))
                     # htmlファイルを作成
                     with open(os.path.join(buf[pid], '%s.html' % name), 'w', encoding='utf-8', errors='ignore') as f:
                         f.write(playlist.format(title=name,
@@ -366,7 +390,7 @@ class Converter:
         top = {}
         buf = {}
         # テンプレートを読み込む
-        with open(os.path.join(Const.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(self.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
             playlist = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
@@ -391,18 +415,17 @@ class Converter:
                             key, value = music.attributes(str(id))
                             buf[sid][key] = value
                         except Exception as err:
-                            log('parse failed in Track ID %s: %s' % (id, err))
+                            self.log('parse failed in Track ID %s: %s' % (id, err))
         # htmlファイルを作成
         with open(os.path.join(self.html_path, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
             f.write(playlist.format(title='Tree', data=json.dumps(self.sort(top)), crumbs=json.dumps([])))
 
     def sort(self, node):
-        if type(node) == dict:
-            if node.get('Added') is None:
-                buf = {}
-                for key in sorted(node.keys()):
-                    buf[key] = node[key]
-                node = buf
+        if node[list(node.keys())[0]].get('Added') is None:
+            buf = {}
+            for key in sorted(node.keys()):
+                buf[key] = node[key]
+            node = buf
             for key in node.keys():
                 node[key] = self.sort(node[key])
         return node
@@ -423,27 +446,27 @@ class Converter:
     
     def convert(self):
         # 開始通知
-        xbmc.executebuiltin('Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
+        xbmc.executebuiltin('Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % self.ADDON_NAME)
         # load playlist
-        self.playlist = self.loadplist(Const.LIBRARY_PATH)
+        self.playlist = self.loadplist(self.LIBRARY_PATH)
         # generate m3u playlists
         self.convert_to_m3u()
         # generate html playlists
-        if Const.GET('create_html') == 'none':
+        if self.GET('create_html') == 'none':
             pass
-        elif Const.GET('create_html') == 'separated':
+        elif self.GET('create_html') == 'separated':
             self.convert_to_html()
-        elif Const.GET('create_html') == 'combined':
+        elif self.GET('create_html') == 'combined':
             self.convert_to_tree()
         # 完了通知
-        xbmc.executebuiltin('Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % Const.ADDON_NAME)
+        xbmc.executebuiltin('Notification("%s","Playlists have been updated",10000,"DefaultIconInfo.png")' % self.ADDON_NAME)
 
 
 if __name__ == '__main__':
     args = parse_qs(sys.argv[2][1:])
     action = args.get('action')
     if action is None:
-        if xbmcgui.Dialog().yesno(Const.ADDON_NAME, Const.STR(30202)):
-            xbmc.executebuiltin('RunPlugin(plugin://%s/?action=convert)' % Const.ADDON_ID)
+        if xbmcgui.Dialog().yesno(Common.ADDON_NAME, Common.STR(30202)):
+            xbmc.executebuiltin('RunPlugin(plugin://%s/?action=convert)' % Common.ADDON_ID)
     else:
         Converter().convert()
