@@ -340,6 +340,8 @@ class Converter(Common):
         # テンプレートを読み込む
         with open(os.path.join(self.DATA_PATH, 'index.html'), 'r', encoding='utf-8') as f:
             index = f.read()
+        with open(os.path.join(self.DATA_PATH, 'jsonview.js'), 'r', encoding='utf-8') as f:
+            jsonview = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
             sid = p.get('Playlist Persistent ID')
@@ -367,9 +369,11 @@ class Converter(Common):
                             self.log('parse failed in Track ID %s: %s' % (id, err))
                     # htmlファイルを作成
                     with open(os.path.join(buf[pid], '%s.html' % name), 'w', encoding='utf-8', errors='ignore') as f:
+                        crumbs = self.crumbs(os.path.join(buf[pid], name), True)
                         f.write(playlist.format(title=name,
                                                 data=json.dumps(data),
-                                                crumbs=json.dumps(self.crumbs(os.path.join(buf[pid], name), True))))
+                                                crumbs=json.dumps(crumbs),
+                                                jsonview='../' * (len(crumbs)-2) + 'jsonview.js'))
         # インデクス
         for root, dirs, files in os.walk(self.html_path):
             data = {}
@@ -380,10 +384,15 @@ class Converter(Common):
                     data['<a href="%s/index.html">%s</a>' % (item, item)] = {'': ''}
             # htmlファイルを作成
             with open(os.path.join(root, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
+                crumbs = self.crumbs(root, False)
                 f.write(index.format(
                     title=os.path.basename(root) or 'Top',
                     data=json.dumps(data),
-                    crumbs=json.dumps(self.crumbs(root, False))))
+                    crumbs=json.dumps(crumbs),
+                    jsonview='../' * (len(crumbs)-1) + 'jsonview.js'))
+        # jsonview.jsをコピー
+        with open(os.path.join(self.html_path, 'jsonview.js'), 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(jsonview)
 
     def convert_to_tree(self):
         # 作業変数を初期化
@@ -392,6 +401,8 @@ class Converter(Common):
         # テンプレートを読み込む
         with open(os.path.join(self.DATA_PATH, 'playlist.html'), 'r', encoding='utf-8') as f:
             playlist = f.read()
+        with open(os.path.join(self.DATA_PATH, 'jsonview.js'), 'r', encoding='utf-8') as f:
+            jsonview = f.read()
         # 全てのプレイリストについて
         for p in self.playlist['Playlists']:
             sid = p.get('Playlist Persistent ID')
@@ -418,10 +429,13 @@ class Converter(Common):
                             self.log('parse failed in Track ID %s: %s' % (id, err))
         # htmlファイルを作成
         with open(os.path.join(self.html_path, 'index.html'), 'w', encoding='utf-8', errors='ignore') as f:
-            f.write(playlist.format(title='Tree', data=json.dumps(self.sort(top)), crumbs=json.dumps([])))
+            f.write(playlist.format(title='Tree', data=json.dumps(self.sort(top)), crumbs=json.dumps([]), jsonview='jsonview.js'))
+        # jsonview.jsをコピー
+        with open(os.path.join(self.html_path, 'jsonview.js'), 'w', encoding='utf-8', errors='ignore') as f:
+            f.write(jsonview)
 
     def sort(self, node):
-        if node[list(node.keys())[0]].get('Added') is None:
+        if len(node) > 0 and node[list(node.keys())[0]].get('Added') is None:  # 空のプレイリストフォルダを除く
             buf = {}
             for key in sorted(node.keys()):
                 buf[key] = node[key]
@@ -443,7 +457,7 @@ class Converter(Common):
         else:
             buf = ['iTunes Playlists | Top']
         return list(reversed(buf))
-    
+
     def convert(self):
         # 開始通知
         xbmc.executebuiltin('Notification("%s","Updating playlists...",3000,"DefaultIconInfo.png")' % self.ADDON_NAME)
